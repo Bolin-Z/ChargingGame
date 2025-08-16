@@ -1,0 +1,13 @@
+{
+    "network_name": "siouxfalls",    
+    "simulation_time": 7200,
+    "deltan": 5,
+    "random_seed": 0,
+
+    "charging_car_rate": 0.1,
+    "charging_link_length": 3000,
+    "charging_link_free_flow_speed": 10,
+
+    "charging_periods": 8,
+    "charging_nodes": ["5", "12", "14", "18"]
+}
