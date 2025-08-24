@@ -25,6 +25,7 @@ scipy==1.16.1
 setuptools==70.2.0
 six==1.17.0
 sympy==1.13.3
+texttable==1.7.0
 torch==2.8.0+cu126
 torchvision==0.23.0+cu126
 tqdm==4.67.1
