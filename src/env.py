@@ -167,6 +167,11 @@ class EVCSGameEnv(ParallelEnv):
     
     def _init(self, network_dir:str, network_name:str):
         logging.info(f"初始化环境 {network_name}...")
+        
+        # 设置随机种子（用于所有随机操作）
+        if self.env_random_seed is not None:
+            np.random.seed(self.env_random_seed)
+            
         # 加载网络
         self._load_network(network_dir, network_name)
         # 计算路径
@@ -196,7 +201,6 @@ class EVCSGameEnv(ParallelEnv):
             settings = json.load(f)
 
             self.network_name:str = settings["network_name"]
-            self._random_seed:int = int(settings["random_seed"])
             
             self._simulation_time:float = float(settings["simulation_time"])
             self._deltan:int = int(settings["deltan"])
@@ -219,7 +223,7 @@ class EVCSGameEnv(ParallelEnv):
             print_mode=1,
             save_mode=1,
             show_mode=0,
-            random_seed=self._random_seed,
+            random_seed=self.env_random_seed if self.env_random_seed is not None else 0,
             user_attribute={}
         )
 

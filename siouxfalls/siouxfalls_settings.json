@@ -1,6 +1,5 @@
 {
-    "network_name": "siouxfalls",    
-    "random_seed": 0,
+    "network_name": "siouxfalls",
     "simulation_time": 7200,
     "deltan": 5,
 
