@@ -134,12 +134,137 @@ class EVCSChargingGameEnv(ParallelEnv):
             user_attribute={}
         )
 
-        # 加载节点
+        # 直接加载分离节点
+        logging.info(f"加载节点并创建分离节点 {node_path}...")
         with open(node_path, "r") as f:
             for r in csv.reader(f):
-                pass
+                if r[1] != "x":  # 跳过表头
+                    name, x, y = r
+                    
+                    if name in self.charging_nodes:
+                        # 充电节点：创建分离节点 name_i 和 name_o
+                        # 为可视化设置略微不同的坐标
+                        offset = 0.1  # 坐标偏移量
+                        self.W.addNode(f"{name}_i", float(x) - offset, float(y))
+                        self.W.addNode(f"{name}_o", float(x) + offset, float(y))
+                        logging.debug(f"创建充电节点分离：{name} -> {name}_i, {name}_o")
+                    else:
+                        # 普通节点：直接创建
+                        self.W.addNode(name, float(x), float(y))
 
         
+        # 直接重定向链路加载
+        logging.info(f"加载链路并重定向到分离节点 {link_path}...")
+        with open(link_path, "r") as f:
+            for r in csv.reader(f):
+                if r[3] != "length":  # 跳过表头
+                    link_name, start_node, end_node = r[0], r[1], r[2]
+                    length, speed, jam_density, merge_priority = float(r[3]), float(r[4]), float(r[5]), float(r[6])
+                    
+                    # 确定重定向后的起点和终点
+                    actual_start = f"{start_node}_o" if start_node in self.charging_nodes else start_node
+                    actual_end = f"{end_node}_i" if end_node in self.charging_nodes else end_node
+                    
+                    # 创建重定向后的链路
+                    self.W.addLink(
+                        link_name, actual_start, actual_end,
+                        length=length,
+                        free_flow_speed=speed,
+                        jam_density=jam_density,
+                        merge_priority=merge_priority,
+                        attribute={"charging_link": False}
+                    )
+                    
+                    logging.debug(f"链路重定向：{start_node}->{end_node} 变为 {actual_start}->{actual_end}")
+        
+        logging.info("链路重定向加载完成")
+
+        # 直接创建内部链路（bypass 和 charging）
+        logging.info("为充电节点创建内部链路...")
+        internal_links_created = 0
+        
+        for charging_node in self.charging_nodes.keys():
+            start_node = f"{charging_node}_i"
+            end_node = f"{charging_node}_o"
+            
+            # 创建旁路链路（非充电）
+            bypass_name = f"{charging_node}_i_bypass_{charging_node}_o"
+            self.W.addLink(
+                bypass_name, start_node, end_node,
+                length=self.charging_link_length,
+                free_flow_speed=self.charging_link_free_flow_speed,
+                jam_density=0.25,  # 默认值
+                merge_priority=0.5,  # 默认值
+                attribute={"charging_link": False}
+            )
+            
+            # 创建充电链路
+            charging_name = f"{charging_node}_i_charging_{charging_node}_o"
+            self.W.addLink(
+                charging_name, start_node, end_node,
+                length=self.charging_link_length,
+                free_flow_speed=self.charging_link_free_flow_speed,
+                jam_density=0.25,  # 默认值
+                merge_priority=0.5,  # 默认值
+                attribute={"charging_link": True}
+            )
+            
+            internal_links_created += 2
+            logging.debug(f"创建内部链路：{bypass_name}, {charging_name}")
+        
+        logging.info(f"创建了{internal_links_created}条内部链路")
+
+        # 直接重定向交通需求加载
+        logging.info(f"加载交通需求并重定向到分离节点 {demand_path}...")
+        with open(demand_path, "r") as f:
+            for r in csv.reader(f):
+                if r[2] != "start_t":  # 跳过表头
+                    origin, destination = r[0], r[1]
+                    start_t, end_t = float(r[2]), float(r[3])
+                    volume = float(r[4])
+                    
+                    # 确定重定向后的起点和终点
+                    # 对于OD需求，起点使用out节点，终点使用in节点
+                    actual_origin = f"{origin}_o" if origin in self.charging_nodes else origin
+                    actual_destination = f"{destination}_i" if destination in self.charging_nodes else destination
+                    
+                    try:
+                        # 充电车辆需求
+                        self.W.adddemand(
+                            actual_origin, actual_destination, start_t, end_t,
+                            volume * self.charging_car_rate,
+                            float(r[5]) * self.charging_car_rate if len(r) > 5 else volume * self.charging_car_rate,
+                            attribute={"charging_car": True}
+                        )
+                        
+                        # 非充电车辆需求
+                        self.W.adddemand(
+                            actual_origin, actual_destination, start_t, end_t,
+                            volume * (1 - self.charging_car_rate),
+                            float(r[5]) * (1 - self.charging_car_rate) if len(r) > 5 else volume * (1 - self.charging_car_rate),
+                            attribute={"charging_car": False}
+                        )
+                        
+                    except IndexError:
+                        # 处理数据格式不一致的情况
+                        # 充电车辆需求
+                        self.W.adddemand(
+                            actual_origin, actual_destination, start_t, end_t,
+                            volume * self.charging_car_rate,
+                            attribute={"charging_car": True}
+                        )
+                        
+                        # 非充电车辆需求
+                        self.W.adddemand(
+                            actual_origin, actual_destination, start_t, end_t,
+                            volume * (1 - self.charging_car_rate),
+                            attribute={"charging_car": False}
+                        )
+                    
+                    logging.debug(f"需求重定向：{origin}->{destination} 变为 {actual_origin}->{actual_destination}")
+        
+        logging.info("交通需求重定向加载完成")
+        logging.info("节点分离网络加载完成")
 
     def __compute_routes(self):
         pass
