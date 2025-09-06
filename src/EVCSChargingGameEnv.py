@@ -6,6 +6,8 @@
 # 3. 保持完整的PettingZoo ParallelEnv接口
 # 4. 实现Day-to-Day动态均衡的UE-DTA仿真
 
+from __future__ import annotations
+
 import os
 import json
 import csv
@@ -17,6 +19,7 @@ from itertools import islice
 from math import floor
 from texttable import Texttable
 import numpy as np
+from tqdm import tqdm
 from pettingzoo import ParallelEnv
 from gymnasium import spaces
 from typing import Dict, Any, Optional
@@ -108,7 +111,27 @@ class EVCSChargingGameEnv(ParallelEnv):
     
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> tuple[Dict[str, Any], Dict[str, Any]]:
         """ 重置环境 """
-        pass
+        # 设置随机种子
+        if seed is not None:
+            np.random.seed(seed)
+        elif self.env_random_seed is not None:
+            np.random.seed(self.env_random_seed)
+            
+        # 重置环境状态
+        self.current_step = 0
+        self.price_history = []  # 环境启动时无报价历史
+        self.charging_flow_history = []  # 环境启动时无流量历史
+        
+        # 清理之前的路径分配（如果存在）
+        if hasattr(self, 'current_routes_specified'):
+            delattr(self, 'current_routes_specified')
+        
+        # 生成初始观测
+        observations = self.__get_observations()
+        infos = {agent: {} for agent in self.agents}
+        
+        logging.info(f"环境重置完成，当前步骤={self.current_step}")
+        return observations, infos
     
     def step(self, actions: Dict[str, np.ndarray]) -> tuple[Dict[str, Any], Dict[str, float], Dict[str, bool], Dict[str, bool], Dict[str, Any]]:
         """
@@ -124,7 +147,35 @@ class EVCSChargingGameEnv(ParallelEnv):
             truncations: {agent_id: bool}
             infos: {agent_id: dict}
         """
-        pass
+        # 1. 将归一化动作映射到实际价格并更新价格历史
+        self.__update_prices_from_actions(actions)
+        
+        # 2. 运行UE-DTA仿真获取充电流量
+        charging_flows = self.__run_simulation()
+        
+        # 3. 计算奖励
+        rewards = self.__calculate_rewards(charging_flows)
+        
+        # 4. 更新充电流量历史
+        self.charging_flow_history.append(charging_flows)
+        
+        # 5. 更新状态
+        self.current_step += 1
+        
+        # 6. 判断终止条件
+        terminated = self.__check_convergence()
+        truncated = self.current_step >= self.max_steps
+        
+        # 7. 生成新观测
+        observations = self.__get_observations()
+        
+        # 8. 构建返回值
+        terminations = {agent: terminated for agent in self.agents}
+        truncations = {agent: truncated for agent in self.agents}
+        infos = {agent: {} for agent in self.agents}
+        
+        logging.debug(f"步骤{self.current_step}: 奖励={rewards}, 终止={terminated}, 截断={truncated}")
+        return observations, rewards, terminations, truncations, infos
 
     def __load_case(self, network_dir: str, network_name: str):
         """ 加载环境用例 """
@@ -370,68 +421,703 @@ class EVCSChargingGameEnv(ParallelEnv):
         return routes
 
     def __init_charging_prices(self, mode="random"):
-        """ 初始化充电价格 """
-        pass
+        """
+        初始化充电价格
+        
+        Args:
+            mode: 初始化模式，"random"为随机初始化，"midpoint"为中点初始化
+        
+        Returns:
+            np.array(n_agents, n_periods): 初始化的价格矩阵
+        """
+        logging.info(f"初始化充电价格 (模式: {mode})...")
+        
+        prices = np.zeros((self.n_agents, self.n_periods))
+        
+        for agent_idx, agent in enumerate(self.agents):
+            bounds = self.charging_nodes[agent]
+            min_price, max_price = bounds[0], bounds[1]
+            
+            if mode == "random":
+                # 在价格区间内随机采样
+                for period in range(self.n_periods):
+                    prices[agent_idx, period] = np.random.uniform(min_price, max_price)
+            elif mode == "midpoint":
+                # 初始化为价格区间中点
+                midpoint = (min_price + max_price) / 2.0
+                for period in range(self.n_periods):
+                    prices[agent_idx, period] = midpoint
+            else:
+                raise ValueError(f"不支持的初始化模式: {mode}")
+        
+        logging.debug(f"初始充电价格矩阵:\n{prices}")
+        return prices
 
     def __get_observations(self) -> Dict[str, Dict[str, np.ndarray]]:
-        """ 获取观测 """
-        pass
+        """
+        生成所有智能体的观测
+        
+        Returns:
+            Dict[agent_id, Dict[obs_key, np.ndarray]]: 各智能体的观测字典
+        """
+        observations = {}
+        
+        # 获取上轮所有价格的归一化版本
+        if len(self.price_history) >= 1:
+            # 使用上一轮的价格
+            last_prices = self.__normalize_prices(self.price_history[-1])
+        else:
+            # 环境刚启动时没有报价历史，使用零矩阵
+            last_prices = np.zeros((self.n_agents, self.n_periods))
+        
+        # 获取当前/上轮的充电流量
+        if len(self.charging_flow_history) > 0:
+            last_flows = self.charging_flow_history[-1]
+        else:
+            # 没有流量历史时使用零矩阵
+            last_flows = np.zeros((self.n_agents, self.n_periods))
+            
+        for agent_idx, agent in enumerate(self.agents):
+            observations[agent] = {
+                "last_round_all_prices": last_prices.astype(np.float32),
+                "own_charging_flow": last_flows[agent_idx].astype(np.float32)
+            }
+            
+        return observations
 
     def __normalize_prices(self, price_matrix: np.ndarray) -> np.ndarray:
-        """ 归一化价格 """
-        pass
+        """
+        将实际价格矩阵归一化到[0,1]区间
+        
+        Args:
+            price_matrix: 实际价格矩阵 (n_agents, n_periods)
+            
+        Returns:
+            np.ndarray: 归一化价格矩阵 (n_agents, n_periods)
+        """
+        normalized = np.zeros((self.n_agents, self.n_periods))
+        
+        for agent_idx, agent in enumerate(self.agents):
+            bounds = self.charging_nodes[agent]
+            min_price, max_price = bounds[0], bounds[1]
+            
+            for period in range(self.n_periods):
+                actual_price = price_matrix[agent_idx, period]
+                # 归一化: (价格 - 最小值) / (最大值 - 最小值)
+                normalized[agent_idx, period] = (actual_price - min_price) / (max_price - min_price)
+        
+        return normalized
 
     def __update_prices_from_actions(self, actions: Dict[str, np.ndarray]):
-        """ 从动作更新价格 """
-        pass
+        """
+        将归一化动作映射到实际价格并更新价格历史
+        
+        Args:
+            actions: 智能体动作字典 {agent_id: np.array(n_periods)} 值域[0,1]
+        """
+        # 使用公共接口获取价格矩阵
+        new_prices = self.actions_to_prices(actions)
+        
+        # 添加到价格历史
+        self.price_history.append(new_prices)
+        
+        logging.debug(f"步骤{self.current_step}: 更新价格到历史记录，当前历史长度={len(self.price_history)}")
+        
+        return new_prices
 
     def __check_convergence(self) -> bool:
-        """ 检查收敛 """
-        pass
+        """
+        检查价格是否收敛（基于L2范数）
+        
+        Returns:
+            bool: 是否已收敛
+        """
+        if len(self.price_history) < 2:
+            return False
+            
+        # 计算所有智能体价格向量的变化
+        current_prices = self.price_history[-1]
+        previous_prices = self.price_history[-2]
+        
+        # 使用L2范数判断收敛
+        price_change = np.linalg.norm(current_prices - previous_prices)
+        
+        converged = price_change < self.convergence_threshold
+        logging.debug(f"步骤{self.current_step}: 价格变化L2范数={price_change:.6f}, 收敛阈值={self.convergence_threshold}, 是否收敛={converged}")
+        
+        return converged
 
-    def __create_simulation_world(self) -> World:
-        """ 创建仿真世界 """
-        pass
+    def __create_simulation_world(self) -> "PredefinedRouteWorld":
+        """
+        创建支持预定路径的仿真世界实例，包含完整的网络结构和交通需求
+        
+        Returns:
+            PredefinedRouteWorld: 新的仿真世界实例
+        """
+        W = PredefinedRouteWorld(
+            name=self.network_name + f"_step{self.current_step}",
+            deltan=self.deltan,
+            tmax=self.simulation_time,
+            print_mode=0,  # 静默模式
+            save_mode=0,   # 不保存文件
+            show_mode=0,
+            random_seed=self.env_random_seed if self.env_random_seed is not None else 0,
+            user_attribute={}
+        )
+        
+        # 复制所有节点
+        for node in self.W.NODES:
+            W.addNode(node.name, node.x, node.y)
+        
+        # 复制所有链路（包括普通链路和自环充电链路）
+        charging_links_created = 0
+        normal_links_created = 0
+        
+        for link in self.W.LINKS:
+            W.addLink(
+                link.name, 
+                link.start_node.name, 
+                link.end_node.name,
+                length=link.length,
+                free_flow_speed=link.u,
+                jam_density=link.kappa,
+                merge_priority=link.merge_priority,
+                attribute=link.attribute.copy()
+            )
+            
+            # 统计链路类型
+            if link.attribute.get("charging_link", False):
+                charging_links_created += 1
+            else:
+                normal_links_created += 1
+        
+        logging.debug(f"复制网络结构完成: {normal_links_created}条普通链路, {charging_links_created}条充电链路")
+        
+        # 复制交通需求（使用PredefinedRouteVehicle，延迟分配路径）
+        vehicle_objects_created = 0
+        charging_vehicle_objects = 0
+        
+        for veh in self.W.VEHICLES.values():
+            # 创建PredefinedRouteVehicle，但不传入预定路径（延迟分配）
+            new_veh = PredefinedRouteVehicle(
+                W, veh.orig.name, veh.dest.name, 
+                veh.departure_time,
+                predefined_route=None,  # 延迟分配路径
+                departure_time_is_time_step=True,
+                attribute=veh.attribute.copy()
+            )
+            vehicle_objects_created += 1
+            if veh.attribute.get("charging_car", False):
+                charging_vehicle_objects += 1
+        
+        # 计算实际车辆数
+        actual_vehicles = vehicle_objects_created * self.deltan
+        actual_charging_vehicles = charging_vehicle_objects * self.deltan
+        
+        logging.debug(f"复制交通需求完成: {vehicle_objects_created}个Vehicle对象 (实际{actual_vehicles}辆车)，其中{charging_vehicle_objects}个充电Vehicle对象 (实际{actual_charging_vehicles}辆充电车辆)")
+        
+        return W
 
     def actions_to_prices(self, actions: Dict[str, np.ndarray]) -> np.ndarray:
-        """ 动作转价格 """
-        pass
+        """
+        将归一化动作映射到实际价格（纯函数，不修改环境状态）
+        
+        Args:
+            actions: 智能体动作字典 {agent_id: np.array(n_periods)} 值域[0,1]
+        
+        Returns:
+            np.ndarray: 价格矩阵 (n_agents, n_periods)
+        """
+        # 创建价格矩阵
+        prices = np.zeros((self.n_agents, self.n_periods))
+        
+        for agent_idx, agent in enumerate(self.agents):
+            bounds = self.charging_nodes[agent]
+            min_price, max_price = bounds[0], bounds[1]
+            
+            for period in range(self.n_periods):
+                # 将[0,1]动作映射到[min_price, max_price]
+                normalized_action = actions[agent][period]
+                actual_price = min_price + normalized_action * (max_price - min_price)
+                prices[agent_idx, period] = actual_price
+        
+        return prices
 
     def __initialize_routes(self, dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, use_greedy: bool = True) -> Dict[str, list]:
-        """ 初始化路径 """
-        pass
+        """
+        为所有车辆分配初始路径
+        
+        Args:
+            dict_od_to_charging_vehid: 充电车辆的OD映射
+            dict_od_to_uncharging_vehid: 非充电车辆的OD映射  
+            use_greedy: True使用贪心策略(最短路径)，False使用随机策略
+            
+        Returns:
+            Dict[str, list]: 车辆ID到路径的映射 {veh_id: [link_name1, link_name2, ...]}
+        """
+        routes_specified = {}
+        
+        if use_greedy:
+            # 贪心策略：选择最短路径
+            for od_pair, veh_ids in dict_od_to_charging_vehid.items():
+                available_routes = self.dict_od_to_routes["charging"][od_pair]
+                if available_routes:
+                    best_route = available_routes[0]  # 第一条就是最短的
+                    for veh_id in veh_ids:
+                        routes_specified[veh_id] = best_route
+            
+            for od_pair, veh_ids in dict_od_to_uncharging_vehid.items():
+                available_routes = self.dict_od_to_routes["uncharging"][od_pair]
+                if available_routes:
+                    best_route = available_routes[0]  # 第一条就是最短的
+                    for veh_id in veh_ids:
+                        routes_specified[veh_id] = best_route
+                        
+            logging.debug(f"初始化路径分配（贪心策略）：充电{len(dict_od_to_charging_vehid)}个OD对，非充电{len(dict_od_to_uncharging_vehid)}个OD对")
+            
+        else:
+            # 随机策略：随机选择路径
+            for od_pair, veh_ids in dict_od_to_charging_vehid.items():
+                available_routes = self.dict_od_to_routes["charging"][od_pair]
+                if available_routes:
+                    for veh_id in veh_ids:
+                        random_route_idx = np.random.choice(len(available_routes))
+                        routes_specified[veh_id] = available_routes[random_route_idx]
+            
+            for od_pair, veh_ids in dict_od_to_uncharging_vehid.items():
+                available_routes = self.dict_od_to_routes["uncharging"][od_pair]
+                if available_routes:
+                    for veh_id in veh_ids:
+                        random_route_idx = np.random.choice(len(available_routes))
+                        routes_specified[veh_id] = available_routes[random_route_idx]
+                        
+            logging.debug(f"初始化路径分配（随机策略）：充电{len(dict_od_to_charging_vehid)}个OD对，非充电{len(dict_od_to_uncharging_vehid)}个OD对")
+        
+        return routes_specified
 
-    def __apply_routes_to_vehicles(self, W: World, routes_specified: Dict[str, list]):
-        """ 为车辆分配路径 """
-        pass
+    def __apply_routes_to_vehicles(self, W: "PredefinedRouteWorld", routes_specified: Dict[str, list]):
+        """
+        为车辆分配指定的路径（使用PredefinedRouteVehicle的assign_route方法）
+        
+        Args:
+            W: PredefinedRouteWorld实例
+            routes_specified: 车辆ID到路径的映射 {veh_id: [link_name1, link_name2, ...]}
+        """
+        for veh_id, route_links in routes_specified.items():
+            if veh_id in W.VEHICLES:
+                veh = W.VEHICLES[veh_id]
+                # 使用PredefinedRouteVehicle的assign_route方法分配路径
+                veh.assign_route(route_links)
 
     def __get_period(self, t: float) -> int:
-        """ 获取时段 """
-        pass
+        """
+        获取 t 时刻对应的电价时间段
+        
+        Args:
+            t: 时间戳（秒）
+            
+        Returns:
+            int: 时段索引 [0, n_periods-1]
+        """
+        return max(0, min(floor(t / self.period_duration), self.n_periods - 1))
 
     def __get_price(self, t: float, node: str) -> float:
-        """ 获取价格 """
-        pass
+        """
+        获取 t 时刻 node 的电价（当前step内价格固定）
+        
+        Args:
+            t: 时间戳（秒）
+            node: 充电节点名称
+            
+        Returns:
+            float: 该时刻该节点的电价
+        """
+        period = self.__get_period(t)
+        agent_idx = self.agent_name_mapping[node]
+        
+        # 使用当前step的价格（price_history[-1]）
+        current_prices = self.price_history[-1]
+        return current_prices[agent_idx, period]
 
-    def __calculate_actual_vehicle_cost_and_flow(self, veh, W: World, charging_flows: np.ndarray) -> float:
-        """ 计算车辆成本和流量 """
-        pass
+    def __calculate_actual_vehicle_cost_and_flow(self, veh, W: "PredefinedRouteWorld", charging_flows: np.ndarray) -> float:
+        """
+        计算车辆实际总成本并同时统计充电流量
+        
+        Args:
+            veh: 车辆对象
+            W: PredefinedRouteWorld实例
+            charging_flows: 充电流量矩阵 (n_agents, n_periods)，会被原地修改
+            
+        Returns:
+            float: 车辆总成本（元）
+        """
+        route, timestamps = veh.traveled_route()
+        
+        # 计算时间成本
+        travel_time = timestamps[-1] - timestamps[0]
+        time_cost = self.time_value_coefficient * travel_time
+        
+        # 计算充电成本并统计流量（仅充电车辆）
+        charging_cost = 0.0
+
+        if veh.attribute["charging_car"]:
+            for i, link in enumerate(route):
+                if "charging_link" in link.attribute and link.attribute["charging_link"]:
+                    # 获取进入充电链路的时刻
+                    charging_entry_time = timestamps[i]
+                    # 从v3.0自环充电链路名称提取充电节点（格式：charging_{node}）
+                    if link.name.startswith("charging_"):
+                        charging_node = link.name.split("charging_")[1]
+                    else:
+                        continue
+                        
+                    # 获取时段和智能体索引
+                    charging_period = self.__get_period(charging_entry_time)
+                    agent_idx = self.agent_name_mapping[charging_node]
+                    
+                    # 统计充电流量（每个Vehicle对象代表deltan辆实际车辆）
+                    charging_flows[agent_idx, charging_period] += self.deltan
+                    
+                    # 获取该时刻的充电价格并计算成本
+                    charging_price = self.__get_price(charging_entry_time, charging_node)
+                    charging_cost = charging_price * self.charging_demand_per_vehicle
+                    break  # 每辆车只充电一次
+        
+        total_cost = time_cost + charging_cost
+        return total_cost
 
     def __estimate_route_cost(self, route_obj, departure_time: float, is_charging_vehicle: bool) -> float:
-        """ 估计路径成本 """
-        pass
+        """
+        估算路径的总成本（预期成本）
+        
+        Args:
+            route_obj: UXsim路径对象
+            departure_time: 出发时间
+            is_charging_vehicle: 是否为充电车辆
+            
+        Returns:
+            float: 预期总成本（元）
+        """
+        current_time = departure_time
+        charging_cost = 0.0
+        
+        for link in route_obj.links:
+            link_travel_time = link.actual_travel_time(current_time)
+            
+            # 仅为充电车辆计算充电成本
+            if is_charging_vehicle and "charging_link" in link.attribute and link.attribute["charging_link"]:
+                if link.name.startswith("charging_"):
+                    # 从v3.0自环充电链路名称提取充电节点（格式：charging_{node}）
+                    charging_node = link.name.split("charging_")[1]
+                    charging_price = self.__get_price(current_time, charging_node)
+                    charging_cost = charging_price * self.charging_demand_per_vehicle
+            
+            current_time += link_travel_time
+        
+        total_travel_time = current_time - departure_time
+        time_cost = self.time_value_coefficient * total_travel_time
+        
+        return time_cost + charging_cost
 
-    def __route_choice_update(self, W: World, dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, current_routes_specified: Dict[str, list]) -> tuple[float, Dict[str, list], np.ndarray]:
-        """ 路径选择更新 """
-        pass
+    def __route_choice_update(self, W: "PredefinedRouteWorld", dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, current_routes_specified: Dict[str, list]) -> tuple[Dict[str, float], Dict[str, list], np.ndarray]:
+        """
+        执行路径选择与切换逻辑，返回统计信息、新路径分配和充电流量统计
+        
+        Args:
+            W: PredefinedRouteWorld实例
+            dict_od_to_charging_vehid: 充电车辆的OD映射
+            dict_od_to_uncharging_vehid: 非充电车辆的OD映射
+            current_routes_specified: 当前路径分配
+            
+        Returns:
+            tuple: (统计信息字典, 新路径分配字典, 充电流量矩阵)
+        """
+        new_routes_specified = {}
+        
+        # 初始化充电流量统计矩阵
+        charging_flows = np.zeros((self.n_agents, self.n_periods))
+        
+        # 统计信息初始化
+        charging_costs = []
+        uncharging_costs = []
+        charging_cost_gaps = []
+        uncharging_cost_gaps = []
+        charging_route_switches = 0
+        uncharging_route_switches = 0
+        
+        # 完成行程统计
+        completed_charging_vehicles = 0
+        completed_uncharging_vehicles = 0
+        total_charging_vehicles = 0
+        total_uncharging_vehicles = 0
+        
+        # 为充电车辆执行路径选择
+        for od_pair, veh_ids in dict_od_to_charging_vehid.items():
+            available_routes = self.dict_od_to_routes["charging"][od_pair]
+            
+            for veh_id in veh_ids:
+                veh = W.VEHICLES[veh_id]
+                total_charging_vehicles += 1
+                
+                # 跳过未完成行程的车辆
+                if veh.state != "end":
+                    new_routes_specified[veh_id] = current_routes_specified[veh_id]
+                    continue
+                
+                completed_charging_vehicles += 1
+                
+                # 计算当前路径的实际成本并统计充电流量
+                current_cost = self.__calculate_actual_vehicle_cost_and_flow(veh, W, charging_flows)
+                charging_costs.append(current_cost)
+                current_route = current_routes_specified[veh_id]
+                
+                # 寻找最优替代路径
+                best_cost = current_cost
+                best_route = current_route
+                
+                if available_routes:
+                    for route_links in available_routes:
+                        route_obj = W.defRoute(route_links)
+                        alt_cost = self.__estimate_route_cost(route_obj, veh.departure_time_in_second, True)
+                        
+                        if alt_cost < best_cost:
+                            best_cost = alt_cost
+                            best_route = route_links
+                
+                # 计算成本差
+                cost_gap = current_cost - best_cost
+                charging_cost_gaps.append(cost_gap)
+                
+                # 路径切换决策
+                if cost_gap > 0 and np.random.random() < self.ue_swap_probability:
+                    new_routes_specified[veh_id] = best_route
+                    charging_route_switches += 1
+                else:
+                    new_routes_specified[veh_id] = current_route
+        
+        # 为非充电车辆执行路径选择
+        for od_pair, veh_ids in dict_od_to_uncharging_vehid.items():
+            available_routes = self.dict_od_to_routes["uncharging"][od_pair]
+            
+            for veh_id in veh_ids:
+                veh = W.VEHICLES[veh_id]
+                total_uncharging_vehicles += 1
+                
+                # 跳过未完成行程的车辆
+                if veh.state != "end":
+                    new_routes_specified[veh_id] = current_routes_specified[veh_id]
+                    continue
+                
+                completed_uncharging_vehicles += 1
+                
+                # 计算当前路径的实际成本
+                route, timestamps = veh.traveled_route()
+                travel_time = timestamps[-1] - timestamps[0]
+                current_cost = self.time_value_coefficient * travel_time
+                uncharging_costs.append(current_cost)
+                current_route = current_routes_specified[veh_id]
+                
+                # 寻找最优替代路径
+                best_cost = current_cost
+                best_route = current_route
+                
+                if available_routes:
+                    for route_links in available_routes:
+                        route_obj = W.defRoute(route_links)
+                        alt_cost = self.__estimate_route_cost(route_obj, veh.departure_time_in_second, False)
+                        
+                        if alt_cost < best_cost:
+                            best_cost = alt_cost
+                            best_route = route_links
+                
+                # 计算成本差
+                cost_gap = current_cost - best_cost
+                uncharging_cost_gaps.append(cost_gap)
+                
+                # 路径切换决策
+                if cost_gap > 0 and np.random.random() < self.ue_swap_probability:
+                    new_routes_specified[veh_id] = best_route
+                    uncharging_route_switches += 1
+                else:
+                    new_routes_specified[veh_id] = current_route
+        
+        # 计算统计信息
+        stats = {
+            "charging_avg_cost": np.mean(charging_costs) if charging_costs else 0.0,
+            "uncharging_avg_cost": np.mean(uncharging_costs) if uncharging_costs else 0.0,
+            "all_avg_cost": np.mean(charging_costs + uncharging_costs) if (charging_costs or uncharging_costs) else 0.0,
+            "charging_avg_cost_gap": np.mean(charging_cost_gaps) if charging_cost_gaps else 0.0,
+            "uncharging_avg_cost_gap": np.mean(uncharging_cost_gaps) if uncharging_cost_gaps else 0.0,
+            "all_avg_cost_gap": np.mean(charging_cost_gaps + uncharging_cost_gaps) if (charging_cost_gaps or uncharging_cost_gaps) else 0.0,
+            "charging_route_switches": charging_route_switches,
+            "uncharging_route_switches": uncharging_route_switches,
+            "total_route_switches": charging_route_switches + uncharging_route_switches,
+            "charging_total_cost": np.sum(charging_costs) if charging_costs else 0.0,
+            "uncharging_total_cost": np.sum(uncharging_costs) if uncharging_costs else 0.0,
+            "all_total_cost": np.sum(charging_costs + uncharging_costs) if (charging_costs or uncharging_costs) else 0.0,
+            "charging_total_cost_gap": np.sum(charging_cost_gaps) if charging_cost_gaps else 0.0,
+            "uncharging_total_cost_gap": np.sum(uncharging_cost_gaps) if uncharging_cost_gaps else 0.0,
+            "all_total_cost_gap": np.sum(charging_cost_gaps + uncharging_cost_gaps) if (charging_cost_gaps or uncharging_cost_gaps) else 0.0,
+            "completed_charging_vehicles": completed_charging_vehicles * self.deltan,
+            "completed_uncharging_vehicles": completed_uncharging_vehicles * self.deltan,
+            "total_charging_vehicles": total_charging_vehicles * self.deltan,
+            "total_uncharging_vehicles": total_uncharging_vehicles * self.deltan,
+            "completed_total_vehicles": (completed_charging_vehicles + completed_uncharging_vehicles) * self.deltan,
+            "total_vehicles": (total_charging_vehicles + total_uncharging_vehicles) * self.deltan
+        }
+        
+        logging.debug(f"路径选择统计：充电车辆平均成本={stats['charging_avg_cost']:.2f}，非充电车辆平均成本={stats['uncharging_avg_cost']:.2f}")
+        logging.debug(f"成本差：充电={stats['charging_avg_cost_gap']:.2f}，非充电={stats['uncharging_avg_cost_gap']:.2f}")
+        logging.debug(f"路径切换：充电={stats['charging_route_switches']}次，非充电={stats['uncharging_route_switches']}次")
+        
+        return stats, new_routes_specified, charging_flows
 
     def __run_simulation(self) -> np.ndarray:
-        """ 运行仿真 """
-        pass
+        """
+        运行基于day-to-day动态均衡的UXsim仿真并返回充电流量统计
+        
+        Returns:
+            np.ndarray: 充电流量矩阵 (n_agents, n_periods)
+        """
+        logging.info("开始UE-DTA求解...")
+        
+        # 获取充电和非充电车辆的OD映射
+        dict_od_to_charging_vehid = defaultdict(list)
+        dict_od_to_uncharging_vehid = defaultdict(list)
+        W_template = self.__create_simulation_world()
+        
+        for key, veh in W_template.VEHICLES.items():
+            o = veh.orig.name
+            d = veh.dest.name
+            if veh.attribute["charging_car"]:
+                dict_od_to_charging_vehid[(o, d)].append(key)
+            else:
+                dict_od_to_uncharging_vehid[(o, d)].append(key)
+
+        # 初始化路径分配（如果是第一次调用）
+        if not hasattr(self, 'current_routes_specified'):
+            self.current_routes_specified = self.__initialize_routes(dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, use_greedy=True)
+        
+        # Day-to-day迭代求解
+        final_charging_flows = None
+        final_stats = None
+        
+        # 使用tqdm显示进度
+        with tqdm(range(self.ue_max_iterations), desc="UE-DTA求解") as pbar:
+            for iteration in pbar:
+                # 创建新的仿真实例
+                W = self.__create_simulation_world()
+                
+                # 应用当前路径分配
+                self.__apply_routes_to_vehicles(W, self.current_routes_specified)
+                
+                # 执行仿真
+                W.exec_simulation()
+                
+                # 计算成本差并执行路径切换，同时获取充电流量和统计信息
+                stats, new_routes_specified, charging_flows = self.__route_choice_update(W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified)
+                
+                # 保存最终的充电流量和统计信息
+                final_charging_flows = charging_flows
+                final_stats = stats
+                
+                # 统计数据已经是实际车辆数（在__route_choice_update中乘以了deltan）
+                actual_completed = int(stats['completed_total_vehicles'])
+                actual_total = int(stats['total_vehicles'])
+                
+                # 更新tqdm描述
+                pbar.set_description(f"第{iteration+1}轮 完成:{actual_completed}/{actual_total} 平均成本:{stats['all_avg_cost']:.2f} 成本差:{stats['all_avg_cost_gap']:.2f} 充电成本差:{stats['charging_avg_cost_gap']:.2f} 非充电成本差:{stats['uncharging_avg_cost_gap']:.2f} 路径切换:{stats['total_route_switches']} 充电切换:{stats['charging_route_switches']} 非充电切换:{stats['uncharging_route_switches']}")
+                
+                # 更新路径分配
+                self.current_routes_specified = new_routes_specified
+                
+                # 收敛判断
+                if stats['all_avg_cost_gap'] < self.ue_convergence_threshold:
+                    pbar.write(f"UE-DTA在第{iteration+1}轮收敛，平均成本差={stats['all_avg_cost_gap']:.2f}元")
+                    pbar.write(f"  完成车辆数:{actual_completed}/{actual_total} 平均成本:{stats['all_avg_cost']:.2f}元")
+                    pbar.write(f"  充电车辆平均成本:{stats['charging_avg_cost']:.2f}元 成本差:{stats['charging_avg_cost_gap']:.2f}元")
+                    pbar.write(f"  非充电车辆平均成本:{stats['uncharging_avg_cost']:.2f}元 成本差:{stats['uncharging_avg_cost_gap']:.2f}元")
+                    pbar.write(f"  路径切换总数:{stats['total_route_switches']} (充电:{stats['charging_route_switches']}, 非充电:{stats['uncharging_route_switches']})")
+                    break
+        
+        # 如果未收敛
+        if iteration == self.ue_max_iterations - 1:
+            final_actual_completed = int(final_stats['completed_total_vehicles'])
+            final_actual_total = int(final_stats['total_vehicles'])
+            
+            pbar.write(f"UE-DTA达到最大迭代次数{self.ue_max_iterations}，平均成本差={final_stats['all_avg_cost_gap']:.2f}元")
+            pbar.write(f"  完成车辆数:{final_actual_completed}/{final_actual_total} 平均成本:{final_stats['all_avg_cost']:.2f}元")
+            pbar.write(f"  充电车辆平均成本:{final_stats['charging_avg_cost']:.2f}元 成本差:{final_stats['charging_avg_cost_gap']:.2f}元")
+            pbar.write(f"  非充电车辆平均成本:{final_stats['uncharging_avg_cost']:.2f}元 成本差:{final_stats['uncharging_avg_cost_gap']:.2f}元")
+            pbar.write(f"  路径切换总数:{final_stats['total_route_switches']} (充电:{final_stats['charging_route_switches']}, 非充电:{final_stats['uncharging_route_switches']})")
+        
+        # 显示最终统计表格
+        self.__display_final_stats(final_stats)
+        
+        return final_charging_flows
+    
+    def __display_final_stats(self, stats: Dict[str, float]):
+        """
+        显示最终统计信息表格
+        
+        Args:
+            stats: 统计信息字典
+        """
+        table = Texttable()
+        table.set_deco(Texttable.HEADER)
+        table.set_cols_align(["l", "c", "c", "c"])
+        table.set_cols_valign(["m", "m", "m", "m"])
+        
+        # 统计数据已经是实际车辆数（在__route_choice_update中乘以了deltan）
+        actual_completed_total = int(stats['completed_total_vehicles'])
+        actual_total = int(stats['total_vehicles'])
+        actual_completed_charging = int(stats['completed_charging_vehicles'])
+        actual_total_charging = int(stats['total_charging_vehicles'])
+        actual_completed_uncharging = int(stats['completed_uncharging_vehicles'])
+        actual_total_uncharging = int(stats['total_uncharging_vehicles'])
+        
+        # 设置表格内容
+        table.add_rows([
+            ["指标", "所有车辆", "充电车辆", "非充电车辆"],
+            ["完成路径车辆数/总车辆数", 
+             f"{actual_completed_total}/{actual_total}", 
+             f"{actual_completed_charging}/{actual_total_charging}", 
+             f"{actual_completed_uncharging}/{actual_total_uncharging}"],
+            ["平均成本/总成本", 
+             f"{stats['all_avg_cost']:.2f}/{stats['all_total_cost']:.2f}", 
+             f"{stats['charging_avg_cost']:.2f}/{stats['charging_total_cost']:.2f}", 
+             f"{stats['uncharging_avg_cost']:.2f}/{stats['uncharging_total_cost']:.2f}"],
+            ["平均成本差/总成本差", 
+             f"{stats['all_avg_cost_gap']:.2f}/{stats['all_total_cost_gap']:.2f}", 
+             f"{stats['charging_avg_cost_gap']:.2f}/{stats['charging_total_cost_gap']:.2f}", 
+             f"{stats['uncharging_avg_cost_gap']:.2f}/{stats['uncharging_total_cost_gap']:.2f}"]
+        ])
+        
+        print("\n" + "="*80)
+        print("UE-DTA仿真最终统计结果")
+        print("="*80)
+        print(table.draw())
+        print("="*80)
 
     def __calculate_rewards(self, charging_flows: np.ndarray) -> Dict[str, float]:
-        """ 计算奖励 """
-        pass
+        """ 计算奖励：基于充电流量和当前价格计算各agent收益 """
+        rewards = {}
+        current_prices = self.price_history[-1]  # (n_agents, n_periods)
+        
+        for agent_idx in range(self.n_agents):
+            agent_name = self.agents[agent_idx]
+            
+            # 计算该agent在各时段的收益：价格 × 充电流量
+            total_reward = 0.0
+            for period in range(self.n_periods):
+                price = current_prices[agent_idx, period]
+                flow = charging_flows[agent_idx, period]
+                period_reward = price * flow * self.charging_demand_per_vehicle
+                total_reward += period_reward
+            
+            rewards[agent_name] = total_reward
+            
+        return rewards
 
 
 # =============================================================================
