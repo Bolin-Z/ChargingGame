@@ -492,3 +492,242 @@ EVCSChargingGameEnv v3.0已完全实现，包括：
 - v3.0实现位于 `src/EVCSChargingGameEnv.py`，保持与配置文件格式完全兼容
 - 严格遵循PettingZoo ParallelEnv接口规范，确保MADRL算法兼容性
 - 充电链路命名规范：`charging_{node_idx}` 用于自环链路 `{node_idx} -> {node_idx}`
+
+## 🚨 当前问题诊断与解决方案
+
+### 问题现状（2025年1月）
+
+**核心问题**：PredefinedRouteVehicle的路径执行不准确
+- **症状1**：车辆不按预定路径行驶（车辆1484走了10-11而不是预定的10-15）
+- **症状2**：traveled_route()报错"route is not defined by concective links"
+- **症状3**：车辆路径不连续，出现如[4-5, 5-9, 10-11]的断裂路径
+
+### 根本原因分析
+
+通过调试发现的关键问题：
+
+1. **时序问题**：
+   - ✅ 路径分配正确：`assign_route()`成功设置预定路径
+   - ❌ 但Node.generate()忽略route_next_link，用自己的逻辑选择第一个链路
+   - 结果：车辆第一步就走错了路
+
+2. **UXSim内部机制冲突**：
+   ```
+   Node.generate()选择链路的逻辑：
+   - 基于route_pref（路径偏好）
+   - 基于links_prefer/links_avoid
+   - 完全忽略车辆的route_next_link属性
+   ```
+
+3. **路径偏好设置问题**：
+   - 当前的修复尝试（设置整条路径的偏好）导致路径混乱
+   - 车辆在任何位置都倾向选择预定路径中的链路，即使不可达
+
+### 调试信息证据
+
+```
+INFO: 🎯 车辆1484: 类型=PredefinedRouteVehicle
+INFO:   准备分配路径: ['10-15', '15-14', 'charging_14']
+INFO: 🔍 车辆1484: 分配预定路径成功
+INFO:   路径: ['10-15', '15-14', 'charging_14']
+INFO:   route_assigned: True
+INFO:   route_next_link: 10-15
+
+INFO: 🚗 车辆1484: route_next_link_choice()被调用
+INFO:   当前状态: run, 当前链路: 10-11  ← 问题：已在错误链路上
+INFO:   route_assigned: True
+INFO:   route_index: 1
+INFO: ✅ 车辆1484: 选择预定路径链路 15-14 (索引1)
+```
+
+**结论**：路径分配成功，但车辆生成时选择了错误的第一个链路。
+
+### 待实施解决方案
+
+#### 方案A：重写PredefinedRouteVehicle.update() [推荐]
+```python
+def update(self):
+    """完整重写update方法，参考technical_validation.py"""
+    # 正确处理预定路径的状态转换
+    # 确保路径完成时正确终止
+    # 避免使用父类可能有问题的逻辑
+```
+
+#### 方案B：增强Node生成逻辑
+```python
+# 选项1：继承Node类重写generate()
+class PredefinedRouteNode(uxsim.Node):
+    def generate(self):
+        # 检查车辆是否有预定路径
+        # 强制选择route_next_link
+
+# 选项2：PredefinedRouteWorld预处理
+def exec_simulation(self):
+    # 在仿真前确保所有车辆的初始状态正确
+```
+
+#### 方案C：初始化时立即设置路径 [临时方案]
+```python
+def __init__(self, W, orig, dest, departure_time, predefined_route=None, **kwargs):
+    super().__init__(W, orig, dest, departure_time, **kwargs)
+    # 立即分配预定路径，不延迟
+    if predefined_route is not None:
+        self.assign_route_immediately(predefined_route)
+```
+
+### 实施优先级
+
+1. **立即**：实施方案A（重写update方法）- 这是technical_validation.py成功的关键
+2. **短期**：增强路径偏好设置，确保第一个链路选择正确
+3. **中期**：考虑方案B，从根本上解决Node.generate()的问题
+
+### 相关文件
+
+- **问题文件**：`src/EVCSChargingGameEnv.py` - PredefinedRouteVehicle类
+- **参考实现**：`src/technical_validation.py` - 工作正常的版本
+- **测试文件**：`main.py` - 单步测试脚本
+- **错误日志**：车辆1484路径执行错误的详细调试信息
+
+### 🔍 深度调试发现（2025年1月更新）
+
+#### 问题根源确认
+通过详细的车辆225调试追踪，发现了**route_index异常跳跃**的确切问题：
+
+**正常执行流程**：
+1. ✅ 初始化：`route_index=1`，预定路径`['4-5', 'charging_5', '5-6', '6-8']`
+2. ✅ 第一次转移：从`4-5`到`charging_5`，`route_index: 1→2`
+3. ❌ **第二次转移异常**：从`charging_5`直接跳到`6-8`，**跳过了`5-6`**
+
+**关键证据**：
+```
+INFO: 🚛 车辆 225 请求链路转移:
+INFO:    当前链路: charging_5
+INFO:    当前位置: x=3000, length=3000
+INFO:    到达终点节点: 5
+INFO: 🎯 车辆 225 选择预定链路: 6-8 (原索引3)  # 应该是索引2的5-6！
+INFO:    route_index变化: 3 → 4
+```
+
+#### 问题分析
+**核心问题**：`route_index`从2异常跳跃到3，导致选择了错误的链路。
+- **期望**：选择索引2的`5-6`
+- **实际**：选择索引3的`6-8`
+
+**可能原因**：
+1. **隐藏的route_next_link_choice()调用**：存在未被日志捕获的调用
+2. **并发/异步问题**：多线程环境下的竞争条件
+3. **UXSim自环处理特殊逻辑**：自环链路可能触发多次转移请求
+4. **其他代码意外修改route_index**：在route_pref_update()或其他方法中
+
+#### 调试策略
+已实施全面的`route_index`变更监控：
+- ✅ 追踪所有route_next_link_choice()调用
+- ✅ 监控route_index异常变化
+- ✅ 记录车辆转移的完整过程
+- ✅ 检测并发修改问题
+
+#### 已实施的修复措施
+
+**1. 增强的assign_route()方法**：
+- ✅ 添加路径连通性验证
+- ✅ 设置`links_prefer`确保Node.generate()选择正确起始链路
+- ✅ 完整的路径初始化和索引管理
+
+**2. 重写的update()方法**：
+- ✅ 优先检查预定路径完成，而不是目标节点到达
+- ✅ 确保自环充电链路完成后正确终止
+- ✅ 完整的状态转换和链路转移逻辑
+
+**3. 强化的route_next_link_choice()方法**：
+- ✅ 动态更新`links_prefer`为下一个预定链路
+- ✅ 完整的连通性验证和错误检测
+- ✅ 详细的调用追踪和索引变更监控
+
+**4. 全面的异常处理**：
+- ✅ 在`traveled_route()`调用处捕获异常
+- ✅ 提取详细的车辆状态和路径信息
+- ✅ 专门针对问题车辆的追踪日志
+
+#### 🔍 根源问题确认（最新调试结果）
+
+通过增强监控，成功捕获到了问题的完整过程：
+
+**车辆225异常行为完整记录**：
+1. **第一次调用（正常）**：
+   ```
+   📍 route_next_link_choice调用: route_index=2
+   🎯 选择预定链路: 5-6 (原索引2) ✅ 正确
+   route_index变化: 2 → 3 ✅ 正确
+   选择的下个链路: 5-6 ✅ 正确
+   ```
+
+2. **异常检测（关键发现）**：
+   ```
+   ⚠️ route_index异常变化: 2 → 3
+   当前链路: charging_5
+   未通过route_next_link_choice()的变化! ❌ 其他代码修改了索引
+   ```
+
+3. **第二次调用（问题根源）**：
+   ```
+   📍 route_next_link_choice调用: route_index=3 ❌ 应该还是2
+   🎯 选择预定链路: 6-8 (原索引3) ❌ 错误选择
+   ```
+
+#### 🚨 核心问题分析
+
+**双重问题确认**：
+
+**问题1：自环链路重复转移请求**
+- 车辆在`charging_5`自环链路上发起了**两次**转移请求
+- 正常情况下应该只有一次转移请求
+- 可能与UXSim自环链路的特殊处理机制相关
+
+**问题2：route_index被神秘代码修改**
+- 监控显示`route_index`在两次调用间被**非route_next_link_choice()的代码**修改
+- 第一次调用后：`route_index=3`（正确）
+- 第二次调用时：`route_index=3`（被重置？）
+- 导致第二次调用时选择错误的链路索引
+
+#### 🎯 问题定位结果
+
+**根本原因**：
+1. **自环充电链路**触发多次转移请求（UXSim机制问题）
+2. **隐藏的代码**在转移过程中意外修改`route_index`（索引管理问题）
+3. **重复调用**导致跳过正确链路，选择错误路径
+
+**影响范围**：
+- 主要影响包含**自环充电链路**的车辆
+- 非充电车辆或短路径车辆较少受影响
+- 解释了为什么只有部分车辆出现路径错误
+
+#### 当前状态
+🎯 **问题根源已完全确认**
+- ✅ 确认了自环链路重复转移请求问题
+- ✅ 确认了route_index被意外修改问题
+- 🔍 **待定位**：具体是什么代码在修改route_index
+
+#### 🛠️ 精确修复方案
+
+基于问题根源分析，制定了两阶段修复方案：
+
+**阶段1：防止重复调用（立即实施）**
+1. **重复调用检测**：在`route_next_link_choice()`中检测同一链路的重复调用
+2. **自环特殊处理**：针对`charging_X`自环链路的防重复逻辑
+3. **状态保护**：确保每个链路只进行一次路径选择
+
+**阶段2：索引管理加固（深度修复）**
+1. **定位隐藏修改**：找到意外修改`route_index`的具体代码位置
+2. **索引保护**：实施`route_index`的原子性保护机制
+3. **调用序列优化**：确保路径选择调用的正确时序
+
+**预期效果**：
+- 🎯 阻止自环链路的重复转移请求
+- 🛡️ 防止`route_index`被意外修改
+- ✅ 确保车辆严格按预定路径行驶
+
+### 待验证的假设
+
+1. ✅ technical_validation.py成功的核心是update()方法的完整实现
+2. ❌ Node.generate()问题已通过links_prefer解决，实际问题在route_index管理
+3. ✅ assign_route()时机正确，问题在于后续的索引跳跃
