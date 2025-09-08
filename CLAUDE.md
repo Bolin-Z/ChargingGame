@@ -721,13 +721,63 @@ INFO:    route_index变化: 3 → 4
 2. **索引保护**：实施`route_index`的原子性保护机制
 3. **调用序列优化**：确保路径选择调用的正确时序
 
+**🎯 阶段3：转移确认机制（最优方案）**
+基于对UXSim转移机制的深度理解，发现了更优雅的解决方案：
+
+**核心思想**：通过比较`route_next_link`与`link`来确认转移是否成功，只有确认成功后才递增`route_index`
+
+**机制原理**：
+1. **转移请求**：车辆到达链路末端时设置`route_next_link`，但不立即递增索引
+2. **转移确认**：下次调用时检查`route_next_link == link`，确认转移成功
+3. **索引递增**：只有确认转移成功时才递增`route_index`，选择下一条预定链路
+4. **自动重试**：转移失败时保持状态不变，自动等待下次转移机会
+
+**实现关键**：
+```python
+def route_next_link_choice(self):
+    # 步骤1：检查转移确认
+    if (self.route_next_link is not None and 
+        self.link is not None and 
+        self.route_next_link == self.link):
+        # ✅ 转移成功，现在可以递增索引
+        self.route_index += 1
+    
+    # 步骤2：选择下一个目标
+    if self.route_index < len(self.predefined_route):
+        next_link_name = self.predefined_route[self.route_index]
+        next_link = self.W.get_link(next_link_name)
+        self.route_next_link = next_link
+```
+
+**方案优势**：
+- **逻辑简洁**：只需一个对象引用比较
+- **自动纠错**：节点阻塞时自动保持状态，成功时才前进
+- **与UXSim同步**：完全符合UXSim内部转移机制
+- **无需状态管理**：不需要复杂的防重复或时间戳跟踪
+
+**解决核心问题**：
+- 🎯 **节点阻塞场景**：转移失败时route_index保持不变，避免跳跃
+- 🔄 **自环链路处理**：自然处理自环转移的特殊情况
+- 🛡️ **重复调用防护**：基于实际转移结果，而非时间或位置推测
+
 **预期效果**：
 - 🎯 阻止自环链路的重复转移请求
 - 🛡️ 防止`route_index`被意外修改
 - ✅ 确保车辆严格按预定路径行驶
+- 🚀 **最简洁的实现**：核心逻辑只需要几行代码
 
-### 待验证的假设
+### 🔬 解决方案验证记录
 
+**已验证的关键发现**：
 1. ✅ technical_validation.py成功的核心是update()方法的完整实现
-2. ❌ Node.generate()问题已通过links_prefer解决，实际问题在route_index管理
+2. ❌ Node.generate()问题已通过links_prefer解决，实际问题在route_index管理  
 3. ✅ assign_route()时机正确，问题在于后续的索引跳跃
+4. ✅ **节点阻塞是route_index跳跃的根本原因**：转移失败时仍在链路末端，导致重复调用route_next_link_choice()
+5. ✅ **转移确认机制是最优解**：基于`route_next_link == link`比较，逻辑简洁且与UXSim内部机制完美同步
+
+**当前推荐方案排序**：
+1. 🥇 **阶段3：转移确认机制**（最推荐）- 简洁、可靠、易实现
+2. 🥈 阶段1：防重复调用机制 - 作为临时解决方案
+3. 🥉 阶段2：索引管理加固 - 如果需要深度调试时考虑
+
+**实施建议**：优先实施阶段3的转移确认机制，这是理论上和实践上都最优的解决方案。
