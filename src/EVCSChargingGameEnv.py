@@ -2,7 +2,7 @@
 # 
 # 设计思路：
 # 1. 使用自环充电链路模拟充电行为（简化网络拓扑）
-# 2. 集成PredefinedRouteVehicle确保严格按预定路径行驶  
+# 2. 集成预定路径Vehicle确保严格按预定路径行驶  
 # 3. 保持完整的PettingZoo ParallelEnv接口
 # 4. 实现Day-to-Day动态均衡的UE-DTA仿真
 
@@ -24,6 +24,8 @@ from pettingzoo import ParallelEnv
 from gymnasium import spaces
 from typing import Dict, Any, Optional
 from collections import defaultdict
+
+from .patch import patch_uxsim
 
 
 class EVCSChargingGameEnv(ParallelEnv):
@@ -50,6 +52,9 @@ class EVCSChargingGameEnv(ParallelEnv):
             convergence_threshold: 博弈价格收敛阈值
         """
         super().__init__()
+        
+        # 应用UXSim补丁
+        patch_uxsim()
         
         # 环境参数
         self.env_random_seed = random_seed
@@ -236,8 +241,8 @@ class EVCSChargingGameEnv(ParallelEnv):
         link_path = os.path.join(network_dir, f"{network_name}_links.csv")
         demand_path = os.path.join(network_dir, f"{network_name}_demand.csv")
 
-        # 使用增强的PredefinedRouteWorld
-        self.W = PredefinedRouteWorld(
+        # 使用增强的World（通过monkey patch支持预定路径）
+        self.W = World(
             name=self.network_name,
             deltan=self.deltan,
             tmax=self.simulation_time,
@@ -550,14 +555,14 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return converged
 
-    def __create_simulation_world(self) -> "PredefinedRouteWorld":
+    def __create_simulation_world(self) -> World:
         """
         创建支持预定路径的仿真世界实例，包含完整的网络结构和交通需求
         
         Returns:
-            PredefinedRouteWorld: 新的仿真世界实例
+            World: 新的仿真世界实例（通过monkey patch增强）
         """
-        W = PredefinedRouteWorld(
+        W = World(
             name=self.network_name + f"_step{self.current_step}",
             deltan=self.deltan,
             tmax=self.simulation_time,
@@ -596,13 +601,14 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         logging.debug(f"复制网络结构完成: {normal_links_created}条普通链路, {charging_links_created}条充电链路")
         
-        # 复制交通需求（使用PredefinedRouteVehicle，延迟分配路径）
+        # 复制交通需求（使用增强的Vehicle，延迟分配路径）
         vehicle_objects_created = 0
         charging_vehicle_objects = 0
         
         for veh in self.W.VEHICLES.values():
-            # 创建PredefinedRouteVehicle，但不传入预定路径（延迟分配）
-            new_veh = PredefinedRouteVehicle(
+            # 创建增强Vehicle，但不传入预定路径（延迟分配）
+            import uxsim
+            new_veh = uxsim.Vehicle(
                 W, veh.orig.name, veh.dest.name, 
                 veh.departure_time,
                 predefined_route=None,  # 延迟分配路径
@@ -698,18 +704,18 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return routes_specified
 
-    def __apply_routes_to_vehicles(self, W: "PredefinedRouteWorld", routes_specified: Dict[str, list]):
+    def __apply_routes_to_vehicles(self, W: World, routes_specified: Dict[str, list]):
         """
-        为车辆分配指定的路径（使用PredefinedRouteVehicle的assign_route方法）
+        为车辆分配指定的路径（使用增强Vehicle的assign_route方法）
         
         Args:
-            W: PredefinedRouteWorld实例
+            W: World实例（通过monkey patch增强）
             routes_specified: 车辆ID到路径的映射 {veh_id: [link_name1, link_name2, ...]}
         """
         for veh_id, route_links in routes_specified.items():
             if veh_id in W.VEHICLES:
                 veh = W.VEHICLES[veh_id]
-                # 使用PredefinedRouteVehicle的assign_route方法分配路径
+                # 使用增强Vehicle的assign_route方法分配路径
                 veh.assign_route(route_links)
 
     def __get_period(self, t: float) -> int:
@@ -742,13 +748,13 @@ class EVCSChargingGameEnv(ParallelEnv):
         current_prices = self.price_history[-1]
         return current_prices[agent_idx, period]
 
-    def __calculate_actual_vehicle_cost_and_flow(self, veh, W: "PredefinedRouteWorld", charging_flows: np.ndarray) -> float:
+    def __calculate_actual_vehicle_cost_and_flow(self, veh, W: World, charging_flows: np.ndarray) -> float:
         """
         计算车辆实际总成本并同时统计充电流量
         
         Args:
             veh: 车辆对象
-            W: PredefinedRouteWorld实例
+            W: World实例（通过monkey patch增强）
             charging_flows: 充电流量矩阵 (n_agents, n_periods)，会被原地修改
             
         Returns:
@@ -822,12 +828,12 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return time_cost + charging_cost
 
-    def __route_choice_update(self, W: "PredefinedRouteWorld", dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, current_routes_specified: Dict[str, list]) -> tuple[Dict[str, float], Dict[str, list], np.ndarray]:
+    def __route_choice_update(self, W: World, dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, current_routes_specified: Dict[str, list]) -> tuple[Dict[str, float], Dict[str, list], np.ndarray]:
         """
         执行路径选择与切换逻辑，返回统计信息、新路径分配和充电流量统计
         
         Args:
-            W: PredefinedRouteWorld实例
+            W: World实例（通过monkey patch增强）
             dict_od_to_charging_vehid: 充电车辆的OD映射
             dict_od_to_uncharging_vehid: 非充电车辆的OD映射
             current_routes_specified: 当前路径分配
@@ -1123,144 +1129,4 @@ class EVCSChargingGameEnv(ParallelEnv):
         return rewards
 
 
-# =============================================================================
-# 增强的UXsim类 - PredefinedRouteVehicle & PredefinedRouteWorld
-# =============================================================================
-
-import uxsim
-
-class PredefinedRouteVehicle(uxsim.Vehicle):
-    def __init__(self, W, orig, dest, departure_time, predefined_route=None, name=None, **kwargs):
-        """
-        支持预定路径的车辆类
-        
-        Parameters
-        ----------
-        W : World
-            World对象
-        orig : str | Node
-            起点节点
-        dest : str | Node
-            终点节点  
-        departure_time : int
-            出发时间
-        predefined_route : list, optional
-            预定路径序列（链路名称列表），可为None（延迟分配）
-        name : str, optional
-            车辆名称
-        **kwargs
-            其他参数
-        """
-        # 调用父类初始化
-        super().__init__(W, orig, dest, departure_time, name=name, **kwargs)
-        
-        # 预定路径相关属性
-        self.predefined_route_links = []  # Link对象列表，供仿真使用
-        self.route_assigned = False
-        self.route_index = 0
-        
-        # 如果传入了预定路径，立即分配
-        if predefined_route is not None:
-            self.assign_route(predefined_route)
-    
-    def assign_route(self, route_names):
-        """
-        分配预定路径（将路径名称列表转换为Link对象列表）
-        
-        Parameters
-        ----------
-        route_names : list
-            路径名称列表
-        """
-        if not route_names:
-            return
-            
-        self.predefined_route_links = []
-        for link_name in route_names:
-            link = self.W.get_link(link_name)
-            if link is None:
-                raise ValueError(f"Link {link_name} not found in network")
-            self.predefined_route_links.append(link)
-        
-        self.route_assigned = True
-        self.route_index = 0
-        
-        # 初始化第一个链路
-        if self.predefined_route_links:
-            self.route_next_link = self.predefined_route_links[0]
-            self.route_index = 1
-    
-    def route_next_link_choice(self):
-        """
-        选择下一个链路 - 如果有预定路径则严格按照预定路径执行
-        """
-        if not self.route_assigned or not self.predefined_route_links:
-            # 回退到标准UXsim路径选择
-            return super().route_next_link_choice()
-        
-        if self.route_index >= len(self.predefined_route_links):
-            self.route_next_link = None
-            return None  # 路径完成
-        
-        self.route_next_link = self.predefined_route_links[self.route_index]
-        self.route_index += 1
-        return self.route_next_link
-
-
-class PredefinedRouteWorld(uxsim.World):
-    def addVehicle(self, predefined_route, departure_time, name=None, **kwargs):
-        """
-        添加支持预定路径的车辆
-        
-        Parameters
-        ----------
-        predefined_route : list
-            预定路径序列（链路名称列表）
-        departure_time : int
-            出发时间
-        name : str, optional
-            车辆名称
-        **kwargs
-            其他参数
-        """
-        veh = PredefinedRouteVehicle(self, None, None, departure_time, 
-                                   predefined_route=predefined_route, name=name, **kwargs)
-        return veh
-    
-    def adddemand(self, orig, dest, t_start, t_end, flow=-1, volume=-1, attribute=None, direct_call=True):
-        """
-        重写adddemand，使用PredefinedRouteVehicle代替标准Vehicle
-        
-        Parameters
-        ----------
-        orig : str | Node
-            起点节点
-        dest : str | Node  
-            终点节点
-        t_start : float
-            开始时间
-        t_end : float
-            结束时间
-        flow : float, optional
-            流量（车辆/秒）
-        volume : float, optional
-            交通量
-        attribute : any, optional
-            车辆属性
-        direct_call : bool, optional
-            直接调用标志
-        """
-        if volume > 0:
-            flow = volume/(t_end-t_start)
-        
-        f = 0
-        for t in range(int(t_start/self.DELTAT), int(t_end/self.DELTAT)):
-            f += flow*self.DELTAT
-            while f >= self.DELTAN:
-                # 使用PredefinedRouteVehicle，但不传入预定路径（延迟分配）
-                PredefinedRouteVehicle(self, orig, dest, t, 
-                                     predefined_route=None,  # 延迟分配
-                                     departure_time_is_time_step=1, 
-                                     attribute=attribute)
-                f -= self.DELTAN
 

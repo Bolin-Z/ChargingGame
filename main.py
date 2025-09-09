@@ -4,7 +4,7 @@ EVCSChargingGameEnv v3.0 单步测试脚本
 测试功能：
 - 环境初始化和重置
 - 单步step仿真
-- 充电流量统计
+- 车流量统计
 - 奖励计算验证
 """
 from src.EVCSChargingGameEnv import EVCSChargingGameEnv
@@ -61,14 +61,14 @@ print(f"奖励: {[f'{agent}: {reward:.2f}' for agent, reward in rewards.items()]
 print(f"终止状态: {terminations}")
 print(f"截断状态: {truncations}")
 
-# 显示充电流量统计
+# 显示车流量统计
 if len(env.charging_flow_history) > 0:
-    print(f"\n⚡ 充电流量统计:")
+    print(f"\n🚗 车流量统计:")
     latest_flows = env.charging_flow_history[-1]
     for agent_idx, agent in enumerate(env.agents):
-        total_flow = latest_flows[agent_idx].sum()
-        print(f"{agent}: 总计 {total_flow:.1f} 辆车")
-        print(f"        各时段: {latest_flows[agent_idx].round(1).tolist()}")
+        total_flow = int(latest_flows[agent_idx].sum())
+        print(f"{agent}: 总计 {total_flow} 辆车")
+        print(f"        各时段: {[int(flow) for flow in latest_flows[agent_idx]]}")
 
 # 显示价格变化
 print(f"\n💰 价格变化:")

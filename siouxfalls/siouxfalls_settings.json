@@ -1,6 +1,6 @@
 {
     "network_name": "siouxfalls",
-    "simulation_time": 12000,
+    "simulation_time": 9600,
     "deltan": 5,
 
     "charging_car_rate": 0.1,
