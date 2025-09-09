@@ -242,6 +242,9 @@ class EVCSChargingGameEnv(ParallelEnv):
             deltan=self.deltan,
             tmax=self.simulation_time,
             random_seed=self.env_random_seed,
+            print_mode=0,
+            save_mode=0,
+            show_mode=0,
             user_attribute={}
         )
 
