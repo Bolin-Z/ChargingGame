@@ -10,6 +10,229 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 1. **博弈环境实现**：建模用户均衡动态交通分配(UE-DTA)与充电站定价竞争的仿真环境
 2. **MADRL算法实现**：基于MADDPG改造的多智能体强化学习算法，用于求解价格均衡
 
+## 🎯 博弈论定义与分类
+
+### 博弈类型
+
+本项目实现的是**单步静态不完全信息空间差异化定价博弈**，具有以下特征：
+
+#### 博弈结构
+- **智能体集合**：N = {充电站5, 充电站12, 充电站14, 充电站18}
+- **策略空间**：S_i = [0.1, 1.0]^8 （每个充电站在8个时段的价格选择）
+- **收益函数**：R_i = Σ(p_i,j × q_i,j)，其中p_i,j为充电站i在时段j的价格，q_i,j为对应的充电流量
+
+#### 关键特征
+1. **空间差异化**：每个充电站具有不同的地理位置，形成产品差异化
+2. **间接需求响应**：用户基于总成本选择充电路径
+   ```
+   总成本 = 出行时间成本 + 充电价格
+   ```
+3. **不完全信息**：智能体只观测到`last_round_all_prices`和`own_charging_flow`
+4. **静态同时博弈**：所有充电站同时设定价格策略
+
+#### 博弈分类对比
+
+**vs. 传统Bertrand竞争**：
+- ❌ 同质产品价格竞争
+- ✅ 空间差异化产品定价竞争
+- ❌ 消费者选择最低价格
+- ✅ 消费者考虑总成本（价格+出行成本）
+
+**vs. Hotelling空间竞争**：
+- ✅ 空间位置差异化
+- ✅ 每个厂商具有局部垄断力
+- ✅ 消费者考虑运输成本
+
+#### 多轮训练与均衡求解
+
+**重要澄清**：MADRL中的"重复博弈"是**算法求解工具**，不是博弈本身的性质
+
+- **博弈定义**：单次价格设定博弈
+- **多轮训练目的**：通过梯度学习逼近纳什均衡
+- **每轮reset()作用**：重新初始化同一博弈，尝试找到更好的策略
+- **收敛目标**：单步博弈的纳什均衡解
+
+```python
+# 伪代码说明
+博弈定义 = 单步价格设定博弈
+for episode in range(max_episodes):
+    # 不是"下一个博弈"，而是对同一博弈的求解尝试
+    observations = env.reset()  # 重新初始化同一博弈
+    actions = agents.act(observations)  # 尝试策略
+    rewards = env.step(actions)  # 计算收益
+    agents.learn()  # 更新策略逼近均衡
+```
+
+### MADRL算法设计目的
+
+#### 🎯 核心目标
+
+**求解复杂博弈的纳什均衡**：找到4个充电站的最优定价策略组合，使得没有任何充电站能通过单方面改变价格来获得更高收益。
+
+#### 🚫 传统博弈论方法失效原因
+
+1. **需求函数不可解析**：充电流量q_i,j依赖复杂的UE-DTA仿真，无法写出p_i,j → q_i,j的解析表达式
+
+2. **策略空间巨大**：4个智能体 × 8个时段 × 连续价格空间 = 32维连续策略空间
+
+3. **收益函数非凸**：基于交通仿真的收益函数不可微、多峰
+
+4. **耦合复杂性**：每个充电站的收益不仅依赖自己的价格，还受其他3个充电站价格影响
+
+#### 📊 算法预期输出
+
+```python
+# 每个充电站的最优策略
+optimal_strategy = {
+    "充电站5": [p_5_1, p_5_2, ..., p_5_8],   # 8个时段的价格
+    "充电站12": [p_12_1, p_12_2, ..., p_12_8],
+    "充电站14": [p_14_1, p_14_2, ..., p_14_8], 
+    "充电站18": [p_18_1, p_18_2, ..., p_18_8]
+}
+
+# 对应的均衡结果
+equilibrium_result = {
+    "charging_flows": ...,    # 各站充电流量
+    "total_revenues": ...,    # 各站收益
+    "user_costs": ...,       # 用户总成本
+    "system_efficiency": ... # 系统效率指标
+}
+```
+
+#### 🎯 应用价值
+
+1. **政策制定**：为政府制定充电桩建设和定价监管政策提供依据
+2. **商业决策**：为充电站运营商提供最优定价策略
+3. **城市规划**：优化充电基础设施的空间布局
+4. **理论贡献**：为交通-能源耦合系统的博弈分析提供方法论
+
+**核心意义**：通过AI求解传统数学方法无法处理的复杂博弈均衡问题。
+
+## 📋 MADDPG算法设计Todo列表
+
+### 🧠 网络架构设计
+1. **Actor网络结构设计**：MLP vs LSTM（处理时序相关性）
+   - ✅ **确定方案：选用MLP**
+   - **理由**：静态同时博弈本质 - 一次性输出8个时段价格，等价于8维向量输出，无时序依赖
+   - **架构设计**：
+     ```python
+     class MLPActor(nn.Module):
+         def __init__(self, obs_dim, action_dim=8, hidden_sizes=[256, 128]):
+             # Input: flatten([last_round_all_prices, own_charging_flow]) 
+             # Output: 8个时段价格向量 [0,1]^8
+             # 激活函数: Sigmoid确保输出范围[0,1]
+     ```
+
+2. **Critic网络整合方式**：简单拼接 vs 注意力机制
+   - ✅ **确定方案：简单拼接（首选）+ 注意力机制（对比）**
+   - **核心洞察**：空间差异化博弈中，智能体间影响是非对称的（如地理位置相近的充电站竞争更激烈）
+   - **设计思考**：显式建模（注意力机制）vs 隐式学习（MLP拼接）哪种方式更好？
+   - **理由**：MLP的权重矩阵能隐含地实现智能体重要性差异，学习能力等价但更稳定
+   - **创新对比点**：实验对比两种方式在多智能体价格博弈中的效果差异
+   - **输入组织方式**：
+     ```python
+     # 每个智能体都有独立的Critic网络，无需显式身份标识
+     critic_input = torch.cat([
+         last_round_all_prices.flatten(),    # (32,) - 全局价格历史
+         all_charging_flows.flatten(),       # (32,) - 所有智能体流量  
+         all_current_actions.flatten()       # (32,) - 所有智能体动作
+     ], dim=0)  # 总计96维
+     ```
+   
+   - **方案A：简单拼接架构**：
+     ```python
+     class SimpleCritic(nn.Module):
+         def __init__(self, input_dim=96, hidden_sizes=[512, 256]):
+             self.mlp = nn.Sequential(
+                 nn.Linear(96, 512), nn.ReLU(),
+                 nn.Linear(512, 256), nn.ReLU(), 
+                 nn.Linear(256, 1)  # 输出对应智能体的Q值
+             )
+     ```
+   
+   - **方案B：注意力机制架构**：
+     ```python
+     class AttentionCritic(nn.Module):
+         def __init__(self):
+             self.agent_encoder = nn.Linear(24, 64)  # 编码每个智能体
+             self.attention = nn.MultiheadAttention(64, num_heads=4)
+             self.global_encoder = nn.Linear(32, 64)
+             self.q_head = nn.Linear(128, 1)
+         
+         def forward(self, global_info, agent_infos):
+             # 编码所有智能体特征 (4, 64)
+             agent_features = torch.stack([
+                 self.agent_encoder(info) for info in agent_infos
+             ])
+             # 注意力机制自动学习智能体间非对称影响权重
+             attended, weights = self.attention(agent_features, agent_features, agent_features)
+             attended_global = attended.mean(dim=0)
+             # 整合全局和注意力特征
+             global_feature = self.global_encoder(global_info)
+             combined = torch.cat([attended_global, global_feature])
+             return self.q_head(combined)
+     ```
+
+3. **网络层数和隐藏单元数**：平衡表达能力和训练效率
+   - ✅ **确定方案：小网络起步，渐进优化策略**
+   - **设计原则**：从简单网络开始验证可行性，避免过拟合和过度复杂化
+   - **基于参考实现分析**：参考MADDPG (3智能体，输入8-10维，隐藏64维) vs 我们的场景 (4智能体，输入40/96维)
+   - **起始架构配置**：
+     ```python
+     class Actor(nn.Module):
+         def __init__(self, obs_dim=40, action_dim=8):
+             self.net = nn.Sequential(
+                 nn.Linear(40, 64),    # 1.6倍扩展，合理表达空间
+                 nn.ReLU(),
+                 nn.Linear(64, 64),    # 等宽保持，参考实现风格
+                 nn.ReLU(),
+                 nn.Linear(64, 8),     # 输出8个时段价格
+                 nn.Sigmoid()          # 确保[0,1]范围
+             )
+             
+     class Critic(nn.Module):
+         def __init__(self, input_dim=96):
+             self.net = nn.Sequential(
+                 nn.Linear(96, 128),   # 1.33倍扩展，处理复杂多智能体输入
+                 nn.ReLU(),
+                 nn.Linear(128, 64),   # 收敛到参考实现规模
+                 nn.ReLU(),
+                 nn.Linear(64, 1)      # Q值输出
+             )
+     ```
+   - **参数量评估**：
+     - Actor: ≈6.4K参数 (40×64 + 64×64 + 64×8)
+     - Critic: ≈20.8K参数 (96×128 + 128×64 + 64×1)
+     - 单智能体: ≈27K，4智能体总计≈216K（含target网络）
+   - **渐进优化路径**：表达能力不足时可升级到更深/更宽网络
+
+### 🎯 训练策略设计
+4. **噪音探索策略**：Gaussian噪音 vs OU噪音 vs 参数空间噪音
+   - [ ] 待讨论和确定方案
+
+5. **奖励工程**：原始收益 vs 归一化 vs 基准比较
+   - [ ] 待讨论和确定方案
+
+6. **学习率调度**：固定 vs 衰减 vs 自适应
+   - [ ] 待讨论和确定方案
+
+### 🔧 稳定性增强设计
+7. **多次仿真平均**：是否对每个动作进行多次UE-DTA仿真求平均
+   - [ ] 待讨论和确定方案
+
+8. **经验回放改进**：标准回放 vs 优先级回放 vs 多样性采样
+   - [ ] 待讨论和确定方案
+
+9. **目标网络更新**：软更新频率和tau参数选择
+   - [ ] 待讨论和确定方案
+
+### 📊 收敛判断设计
+10. **均衡检测指标**：价格变化阈值 vs 收益稳定性 vs 策略梯度范数
+    - [ ] 待讨论和确定方案
+
+11. **训练终止条件**：固定episodes vs 动态收敛检测
+    - [ ] 待讨论和确定方案
+
 ## 开发命令
 
 ```bash
