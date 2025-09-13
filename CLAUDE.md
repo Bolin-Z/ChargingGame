@@ -325,10 +325,59 @@ equilibrium_result = {
 
 ### 📊 收敛判断设计
 10. **均衡检测指标**：价格变化阈值 vs 收益稳定性 vs 策略梯度范数
-    - [ ] 待讨论和确定方案
+    - ✅ **确定方案：相对变化率价格阈值**
+    - **核心理念**：单步静态博弈中，纳什均衡表现为价格策略稳定
+    - **设计理由**：相对变化率能自适应不同价格水平，比L2范数更科学
+    - **实现方式**：
+      ```python
+      def __check_convergence(self) -> bool:
+          """检查价格是否收敛（基于相对变化率）"""
+          if len(self.price_history) < 2:
+              return False
+          
+          current_prices = self.price_history[-1]
+          previous_prices = self.price_history[-2]
+          
+          # 使用相对变化率，避免除零
+          relative_changes = np.abs(current_prices - previous_prices) / (previous_prices + 1e-8)
+          avg_relative_change = np.mean(relative_changes)
+          
+          converged = avg_relative_change < self.convergence_threshold
+          return converged
+      ```
+    - **优势对比**：
+      - ❌ L2范数：对价格矩阵维度敏感，不同价格水平下阈值难设定
+      - ❌ 收益稳定性：受UE-DTA仿真随机性影响，可能误判
+      - ❌ 策略梯度范数：实现复杂，需要访问网络内部信息
+      - ✅ 相对变化率：维度无关、自适应、实现简单、理论清晰
 
 11. **训练终止条件**：固定episodes vs 动态收敛检测
-    - [ ] 待讨论和确定方案
+    - ✅ **确定方案：仅需环境层收敛检测**
+    - **核心洞察**：单步静态博弈求解不需要MADRL算法层收敛检测
+    - **理论依据**：
+      ```python
+      # 每个episode都是同一博弈的求解尝试
+      博弈定义 = 单步价格设定博弈  # 固定不变
+      for episode in range(max_episodes):
+          observations = env.reset()    # 重新初始化同一博弈
+          actions = agents.act(obs)     # 尝试策略
+          rewards = env.step(actions)   # 计算收益
+          if env.converged:             # 环境内收敛 = 找到纳什均衡
+              break                     # 任务完成
+          agents.learn()                # 学习如何更快找到均衡
+      ```
+    - **终止条件设计**：
+      - **环境内收敛**：`avg_relative_change < convergence_threshold` → 找到纳什均衡
+      - **Episode截断**：`current_step >= max_steps` → 继续下个episode
+      - **MADRL评估**：不是"是否收敛"，而是"平均多少episodes找到均衡"
+    - **实现位置**：
+      ```python
+      # 环境层（EVCSChargingGameEnv.step()）
+      terminated = self.__check_convergence()  # 价格博弈均衡检测
+      truncated = self.current_step >= self.max_steps  # 单episode截断
+      
+      # MADRL层：无需收敛检测，专注策略学习
+      ```
 
 ## 开发命令
 
