@@ -135,7 +135,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         observations = self.__get_observations()
         infos = {agent: {} for agent in self.agents}
         
-        logging.info(f"环境重置完成，当前步骤={self.current_step}")
+        logging.debug(f"环境重置完成，当前步骤={self.current_step}")
         return observations, infos
     
     def step(self, actions: Dict[str, np.ndarray]) -> tuple[Dict[str, Any], Dict[str, float], Dict[str, bool], Dict[str, bool], Dict[str, Any]]:
@@ -184,7 +184,7 @@ class EVCSChargingGameEnv(ParallelEnv):
 
     def __load_case(self, network_dir: str, network_name: str):
         """ 加载环境用例 """
-        logging.info(f"加载环境用例: {network_name}")
+        logging.debug(f"加载环境用例: {network_name}")
         
         # 加载参数
         self.__load_parameters(network_dir, network_name)
@@ -195,11 +195,11 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 计算路径集合
         self.__compute_routes()
         
-        logging.info(f"环境用例加载完成")
+        logging.debug(f"环境用例加载完成")
 
     def __load_parameters(self, network_dir: str, network_name: str):
         """ 加载参数 """
-        logging.info(f"加载参数...")
+        logging.debug(f"加载参数...")
         with open(os.path.join(network_dir, f"{network_name}_settings.json"), "r") as f:
             settings = json.load(f)
             # 网络名称
@@ -235,7 +235,7 @@ class EVCSChargingGameEnv(ParallelEnv):
 
     def __load_network(self, network_dir: str, network_name: str):
         """ 加载路网 """
-        logging.info(f"加载路网 {self.network_name}...")
+        logging.debug(f"加载路网 {self.network_name}...")
         
         node_path = os.path.join(network_dir, f"{network_name}_nodes.csv")
         link_path = os.path.join(network_dir, f"{network_name}_links.csv")
@@ -254,7 +254,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         )
 
         # 加载节点
-        logging.info(f"加载节点 {node_path}...")
+        logging.debug(f"加载节点 {node_path}...")
         with open(node_path, "r") as f:
             for r in csv.reader(f):
                 if r[1] != "x":  # 跳过表头
@@ -262,7 +262,7 @@ class EVCSChargingGameEnv(ParallelEnv):
                     self.W.addNode(name, float(x), float(y))
 
         # 加载链路
-        logging.info(f"加载链路 {link_path}...")
+        logging.debug(f"加载链路 {link_path}...")
         with open(link_path, "r") as f:
             for r in csv.reader(f):
                 if r[3] != "length":  # 跳过表头
@@ -282,7 +282,7 @@ class EVCSChargingGameEnv(ParallelEnv):
                     )
 
         # 创建自环充电链路（仅使用settings.json中的参数）
-        logging.info("创建自环充电链路...")
+        logging.debug("创建自环充电链路...")
         for node in self.charging_nodes.keys():
             charging_link_name = f"charging_{node}"
             self.W.addLink(
@@ -297,7 +297,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             logging.debug(f"创建充电链路: {charging_link_name} ({node}->{node})")
 
         # 加载交通需求
-        logging.info(f"加载交通需求 {demand_path}...")
+        logging.debug(f"加载交通需求 {demand_path}...")
         with open(demand_path, "r") as f:
             for r in csv.reader(f):
                 if r[2] != "start_t":  # 跳过表头
@@ -340,7 +340,7 @@ class EVCSChargingGameEnv(ParallelEnv):
 
     def __compute_routes(self):
         """ 计算路径集合 """
-        logging.info(f"计算路径集合...")
+        logging.debug(f"计算路径集合...")
         k = self.routes_per_od
         
         # 获取所有OD对
@@ -361,7 +361,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             self.dict_od_to_routes["uncharging"][(o, d)] = self.__enumerate_k_shortest_routes(o, d, k)
             self.dict_od_to_routes["charging"][(o, d)] = self.__enumerate_k_shortest_charge_routes(o, d, k)
         
-        logging.info(f"路径计算完成：{len(od_pairs)}个OD对")
+        logging.debug(f"路径计算完成：{len(od_pairs)}个OD对")
 
     def __enumerate_k_shortest_routes(self, source: str, target: str, k: int):
         """ 枚举非充电需求k最短路径 """
@@ -438,7 +438,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         Returns:
             np.array(n_agents, n_periods): 初始化的价格矩阵
         """
-        logging.info(f"初始化充电价格 (模式: {mode})...")
+        logging.debug(f"初始化充电价格 (模式: {mode})...")
         
         prices = np.zeros((self.n_agents, self.n_periods))
         
@@ -988,7 +988,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         Returns:
             np.ndarray: 充电流量矩阵 (n_agents, n_periods)
         """
-        logging.info("开始UE-DTA求解...")
+        logging.debug("开始UE-DTA求解...")
         
         # 获取充电和非充电车辆的OD映射
         dict_od_to_charging_vehid = defaultdict(list)
@@ -1011,8 +1011,9 @@ class EVCSChargingGameEnv(ParallelEnv):
         final_charging_flows = None
         final_stats = None
         
-        # 使用tqdm显示进度
-        with tqdm(range(self.ue_max_iterations), desc="UE-DTA求解") as pbar:
+        # 使用tqdm显示进度（简化输出）
+        with tqdm(range(self.ue_max_iterations), desc="UE-DTA求解", leave=False, 
+                  bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
             for iteration in pbar:
                 # 创建新的仿真实例
                 W = self.__create_simulation_world()
@@ -1034,79 +1035,38 @@ class EVCSChargingGameEnv(ParallelEnv):
                 actual_completed = int(stats['completed_total_vehicles'])
                 actual_total = int(stats['total_vehicles'])
                 
-                # 更新tqdm描述
-                pbar.set_description(f"第{iteration+1}轮 完成:{actual_completed}/{actual_total} 平均成本:{stats['all_avg_cost']:.2f} 成本差:{stats['all_avg_cost_gap']:.2f} 充电成本差:{stats['charging_avg_cost_gap']:.2f} 非充电成本差:{stats['uncharging_avg_cost_gap']:.2f} 路径切换:{stats['total_route_switches']} 充电切换:{stats['charging_route_switches']} 非充电切换:{stats['uncharging_route_switches']}")
+                # 更新tqdm描述（简化版本）
+                pbar.set_description(f"UE-DTA 第{iteration+1}轮 | 成本差:{stats['all_avg_cost_gap']:.3f} | 切换:{stats['total_route_switches']}")
                 
                 # 更新路径分配
                 self.current_routes_specified = new_routes_specified
                 
                 # 收敛判断
                 if stats['all_avg_cost_gap'] < self.ue_convergence_threshold:
-                    pbar.write(f"UE-DTA在第{iteration+1}轮收敛，平均成本差={stats['all_avg_cost_gap']:.2f}元")
-                    pbar.write(f"  完成车辆数:{actual_completed}/{actual_total} 平均成本:{stats['all_avg_cost']:.2f}元")
-                    pbar.write(f"  充电车辆平均成本:{stats['charging_avg_cost']:.2f}元 成本差:{stats['charging_avg_cost_gap']:.2f}元")
-                    pbar.write(f"  非充电车辆平均成本:{stats['uncharging_avg_cost']:.2f}元 成本差:{stats['uncharging_avg_cost_gap']:.2f}元")
-                    pbar.write(f"  路径切换总数:{stats['total_route_switches']} (充电:{stats['charging_route_switches']}, 非充电:{stats['uncharging_route_switches']})")
+                    # 简化收敛输出
                     break
         
-        # 如果未收敛
-        if iteration == self.ue_max_iterations - 1:
-            final_actual_completed = int(final_stats['completed_total_vehicles'])
-            final_actual_total = int(final_stats['total_vehicles'])
-            
-            pbar.write(f"UE-DTA达到最大迭代次数{self.ue_max_iterations}，平均成本差={final_stats['all_avg_cost_gap']:.2f}元")
-            pbar.write(f"  完成车辆数:{final_actual_completed}/{final_actual_total} 平均成本:{final_stats['all_avg_cost']:.2f}元")
-            pbar.write(f"  充电车辆平均成本:{final_stats['charging_avg_cost']:.2f}元 成本差:{final_stats['charging_avg_cost_gap']:.2f}元")
-            pbar.write(f"  非充电车辆平均成本:{final_stats['uncharging_avg_cost']:.2f}元 成本差:{final_stats['uncharging_avg_cost_gap']:.2f}元")
-            pbar.write(f"  路径切换总数:{final_stats['total_route_switches']} (充电:{final_stats['charging_route_switches']}, 非充电:{final_stats['uncharging_route_switches']})")
-        
-        # 显示最终统计表格
-        self.__display_final_stats(final_stats)
+        # 记录最终结果状态（用于外层训练器）
+        convergence_status = "收敛" if iteration < self.ue_max_iterations - 1 else "未收敛"
+        final_cost_gap = final_stats['all_avg_cost_gap']
+        logging.debug(f"UE-DTA求解完成: {convergence_status} | 最终成本差: {final_cost_gap:.3f} | 迭代次数: {iteration+1}")
         
         return final_charging_flows
     
     def __display_final_stats(self, stats: Dict[str, float]):
         """
-        显示最终统计信息表格
+        显示最终统计信息表格（简化版本，仅记录到日志）
         
         Args:
             stats: 统计信息字典
         """
-        table = Texttable()
-        table.set_deco(Texttable.HEADER)
-        table.set_cols_align(["l", "c", "c", "c"])
-        table.set_cols_valign(["m", "m", "m", "m"])
-        
-        # 统计数据已经是实际车辆数（在__route_choice_update中乘以了deltan）
+        # 仅将关键统计信息记录到DEBUG级别日志
         actual_completed_total = int(stats['completed_total_vehicles'])
         actual_total = int(stats['total_vehicles'])
-        actual_completed_charging = int(stats['completed_charging_vehicles'])
-        actual_total_charging = int(stats['total_charging_vehicles'])
-        actual_completed_uncharging = int(stats['completed_uncharging_vehicles'])
-        actual_total_uncharging = int(stats['total_uncharging_vehicles'])
         
-        # 设置表格内容
-        table.add_rows([
-            ["指标", "所有车辆", "充电车辆", "非充电车辆"],
-            ["完成路径车辆数/总车辆数", 
-             f"{actual_completed_total}/{actual_total}", 
-             f"{actual_completed_charging}/{actual_total_charging}", 
-             f"{actual_completed_uncharging}/{actual_total_uncharging}"],
-            ["平均成本/总成本", 
-             f"{stats['all_avg_cost']:.2f}/{stats['all_total_cost']:.2f}", 
-             f"{stats['charging_avg_cost']:.2f}/{stats['charging_total_cost']:.2f}", 
-             f"{stats['uncharging_avg_cost']:.2f}/{stats['uncharging_total_cost']:.2f}"],
-            ["平均成本差/总成本差", 
-             f"{stats['all_avg_cost_gap']:.2f}/{stats['all_total_cost_gap']:.2f}", 
-             f"{stats['charging_avg_cost_gap']:.2f}/{stats['charging_total_cost_gap']:.2f}", 
-             f"{stats['uncharging_avg_cost_gap']:.2f}/{stats['uncharging_total_cost_gap']:.2f}"]
-        ])
-        
-        print("\n" + "="*80)
-        print("UE-DTA仿真最终统计结果")
-        print("="*80)
-        print(table.draw())
-        print("="*80)
+        logging.debug(f"UE-DTA统计: 完成车辆 {actual_completed_total}/{actual_total}, "
+                     f"平均成本 {stats['all_avg_cost']:.2f}, "
+                     f"成本差 {stats['all_avg_cost_gap']:.2f}")
 
     def __calculate_rewards(self, charging_flows: np.ndarray) -> Dict[str, float]:
         """ 计算奖励：基于充电流量和当前价格计算各agent收益 """
