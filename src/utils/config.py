@@ -1,128 +1,74 @@
 """
-配置管理工具
+简化配置管理系统
 
-统一管理训练配置和超参数
+两层配置架构：
+1. MADDPGConfig: MADDPG算法超参数
+2. TrainingConfig: 训练流程控制参数（包含网络路径信息）
+
+路径说明：
+- network_dir: 相对于项目根目录的路径（如 'siouxfalls'）
+- output_dir: 相对于项目根目录的路径（如 'results'）
 """
 
-import json
-import os
-import argparse
-from typing import Dict, Any
 from dataclasses import dataclass
 
 
 @dataclass
+class MADDPGConfig:
+    """MADDPG算法配置"""
+    
+    # === 网络结构配置 ===
+    actor_hidden_sizes: tuple = (64, 64)     # Actor网络隐藏层结构（支持任意层数）
+    critic_hidden_sizes: tuple = (128, 64)   # Critic网络隐藏层结构（支持任意层数）
+    
+    # === 学习参数配置 ===
+    actor_lr: float = 0.001      # Actor网络学习率
+    critic_lr: float = 0.001     # Critic网络学习率
+    gamma: float = 0.99          # 折扣因子，用于计算未来奖励的权重
+    tau: float = 0.01            # 软更新系数，控制目标网络更新速度
+    
+    # === 经验回放配置 ===
+    buffer_capacity: int = 10000 # 经验回放缓冲区容量
+    max_batch_size: int = 64     # 最大批次大小，实际会根据缓冲区大小动态调整
+    
+    # === 探索策略配置 ===
+    noise_sigma: float = 0.2     # 高斯噪音初始标准差，控制探索强度
+    noise_decay: float = 0.9995  # 噪音衰减率，每次调用后噪音强度衰减
+    min_noise: float = 0.01      # 最小噪音标准差，防止探索完全停止
+
+
+@dataclass
 class TrainingConfig:
-    """训练配置数据类"""
-    # 环境配置
-    network_dir: str = 'siouxfalls'
-    network_name: str = 'siouxfalls'
-    max_steps_per_episode: int = 500  # 增加到500步，给算法足够时间寻找纳什均衡
-    convergence_threshold: float = 0.01
+    """训练流程配置"""
     
-    # MADDPG配置
-    buffer_capacity: int = 10000
-    actor_lr: float = 0.001
-    critic_lr: float = 0.001
-    gamma: float = 0.99
-    tau: float = 0.01
-    actor_hidden_sizes: list = None
-    critic_hidden_sizes: list = None
+    # === 网络数据配置 ===
+    network_dir: str = 'siouxfalls'      # 网络数据文件夹路径（相对于项目根目录）
+    network_name: str = 'siouxfalls'     # 网络名称（用于加载对应的文件）
     
-    # 训练配置
-    max_episodes: int = 200  # 减少episode数，每个episode有500步，总共10万步训练
-    seed: int = 42
-    device: str = 'auto'
+    # === 训练控制配置 ===
+    max_episodes: int = 10              # 最大episode数，每个episode尝试求解一次纳什均衡
+    max_steps_per_episode: int = 1000     # 每个episode最大步数，防止无限循环
     
-    # 输出配置
-    output_dir: str = 'results'
-    log_level: str = 'INFO'
-    save_interval: int = 20  # 每20轮保存一次模型（适配200轮总数）
+    # === 收敛控制配置 ===
+    convergence_threshold: float = 0.01  # 纳什均衡价格收敛阈值，价格变化小于此值认为收敛
     
-    def __post_init__(self):
-        if self.actor_hidden_sizes is None:
-            self.actor_hidden_sizes = [64, 64]
-        if self.critic_hidden_sizes is None:
-            self.critic_hidden_sizes = [128, 64]
+    # === 系统配置 ===
+    seed: int = 42                       # 随机种子，保证实验可重复
+    device: str = 'auto'                 # 计算设备：'auto'自动选择, 'cpu'强制CPU, 'cuda'强制GPU
+    
+    # === 输出配置 ===
+    output_dir: str = 'results'          # 实验结果输出根目录（相对于项目根目录）
+    save_interval: int = 10              # 每隔多少episode保存一次模型（如果需要）
 
 
-def parse_arguments() -> argparse.Namespace:
-    """解析命令行参数"""
-    parser = argparse.ArgumentParser(description='EVCS充电站价格博弈MADDPG求解')
-    
-    # 环境配置
-    parser.add_argument('--network_dir', type=str, default='siouxfalls',
-                        help='网络数据文件夹路径')
-    parser.add_argument('--network_name', type=str, default='siouxfalls', 
-                        help='网络名称')
-    
-    # 训练配置
-    parser.add_argument('--max_episodes', type=int, default=200,
-                        help='最大训练轮数（每轮寻找一次纳什均衡）')
-    parser.add_argument('--max_steps_per_episode', type=int, default=500,
-                        help='每轮最大步数（用于寻找纳什均衡）')
-    parser.add_argument('--seed', type=int, default=42,
-                        help='随机种子')
-    
-    # MADDPG配置
-    parser.add_argument('--buffer_capacity', type=int, default=10000,
-                        help='经验回放缓冲区容量')
-    parser.add_argument('--actor_lr', type=float, default=0.001,
-                        help='Actor网络学习率')
-    parser.add_argument('--critic_lr', type=float, default=0.001,
-                        help='Critic网络学习率')
-    parser.add_argument('--gamma', type=float, default=0.99,
-                        help='折扣因子')
-    parser.add_argument('--tau', type=float, default=0.01,
-                        help='软更新系数')
-    
-    # 设备配置
-    parser.add_argument('--device', type=str, default='auto',
-                        help='计算设备 (cpu/cuda/auto)')
-    
-    # 输出配置
-    parser.add_argument('--output_dir', type=str, default='results',
-                        help='结果输出目录')
-    parser.add_argument('--log_level', type=str, default='INFO',
-                        help='日志级别 (DEBUG/INFO/WARNING/ERROR)')
-    parser.add_argument('--save_interval', type=int, default=20,
-                        help='模型保存间隔')
-    
-    return parser.parse_args()
-
-
-def load_config(config_path: str = None) -> TrainingConfig:
+def get_default_configs():
     """
-    加载配置文件
-    
-    Args:
-        config_path: 配置文件路径（可选）
+    获取默认配置
     
     Returns:
-        TrainingConfig: 训练配置对象
+        tuple: (MADDPGConfig, TrainingConfig)
     """
-    # 从命令行参数开始
-    args = parse_arguments()
+    maddpg_config = MADDPGConfig()
+    training_config = TrainingConfig()
     
-    # 如果提供了配置文件，加载并覆盖
-    config_dict = vars(args)
-    if config_path and os.path.exists(config_path):
-        with open(config_path, 'r', encoding='utf-8') as f:
-            file_config = json.load(f)
-        config_dict.update(file_config)
-    
-    # 创建配置对象
-    return TrainingConfig(**config_dict)
-
-
-def save_config(config: TrainingConfig, save_path: str):
-    """
-    保存配置到文件
-    
-    Args:
-        config: 配置对象
-        save_path: 保存路径
-    """
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with open(save_path, 'w', encoding='utf-8') as f:
-        json.dump(config.__dict__, f, indent=2, ensure_ascii=False)
+    return maddpg_config, training_config

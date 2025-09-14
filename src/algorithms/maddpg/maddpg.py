@@ -123,7 +123,9 @@ class DDPG:
     """
     
     def __init__(self, agent_id, obs_dim, action_dim, global_obs_dim,
-                 actor_lr=0.001, critic_lr=0.001, device='cpu'):
+                 actor_lr=0.001, critic_lr=0.001, device='cpu',
+                 actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
+                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01):
         """
         初始化DDPG智能体
         
@@ -135,17 +137,22 @@ class DDPG:
             actor_lr (float): Actor网络学习率
             critic_lr (float): Critic网络学习率
             device (str): 计算设备 ('cpu' 或 'cuda')
+            actor_hidden_sizes (tuple): Actor网络隐藏层配置
+            critic_hidden_sizes (tuple): Critic网络隐藏层配置
+            noise_sigma (float): 探索噪音初始标准差
+            noise_decay (float): 噪音衰减率
+            min_noise (float): 最小噪音标准差
         """
         self.agent_id = agent_id
         self.device = device
         
-        # 创建主网络
-        self.actor = ActorNetwork(obs_dim, action_dim).to(device)
-        self.critic = CriticNetwork(global_obs_dim).to(device)
+        # 创建主网络（使用配置化的隐藏层）
+        self.actor = ActorNetwork(obs_dim, action_dim, actor_hidden_sizes).to(device)
+        self.critic = CriticNetwork(global_obs_dim, critic_hidden_sizes).to(device)
         
         # 创建目标网络（用于稳定训练）
-        self.actor_target = ActorNetwork(obs_dim, action_dim).to(device)
-        self.critic_target = CriticNetwork(global_obs_dim).to(device)
+        self.actor_target = ActorNetwork(obs_dim, action_dim, actor_hidden_sizes).to(device)
+        self.critic_target = CriticNetwork(global_obs_dim, critic_hidden_sizes).to(device)
         
         # 初始化目标网络参数（复制主网络参数）
         self.actor_target.load_state_dict(self.actor.state_dict())
@@ -155,8 +162,8 @@ class DDPG:
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=actor_lr)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=critic_lr)
         
-        # 创建探索噪音
-        self.noise = GaussianNoise(action_dim)
+        # 创建探索噪音（使用配置化参数）
+        self.noise = GaussianNoise(action_dim, noise_sigma, noise_decay, min_noise)
     
     def take_action(self, obs, add_noise=True):
         """
@@ -205,8 +212,10 @@ class MADDPG:
     """
     
     def __init__(self, agent_ids, obs_dim, action_dim, global_obs_dim,
-                 buffer_capacity=10000, batch_size=64, actor_lr=0.001, critic_lr=0.001, 
-                 gamma=0.99, tau=0.01, seed=None, device='cpu'):
+                 buffer_capacity=10000, max_batch_size=64, actor_lr=0.001, critic_lr=0.001, 
+                 gamma=0.99, tau=0.01, seed=None, device='cpu',
+                 actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
+                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01):
         """
         初始化MADDPG协调器
         
@@ -216,13 +225,18 @@ class MADDPG:
             action_dim (int): 单个智能体的动作维度
             global_obs_dim (int): 全局观测维度（用于Critic网络）
             buffer_capacity (int): 经验回放缓冲区容量
-            batch_size (int): 训练批次大小
+            max_batch_size (int): 最大批次大小，实际会根据缓冲区大小动态调整
             actor_lr (float): Actor网络学习率
             critic_lr (float): Critic网络学习率
             gamma (float): 折扣因子
             tau (float): 软更新系数
             seed (int, optional): 随机种子，用于reproducibility
             device (str): 计算设备 ('cpu' 或 'cuda')
+            actor_hidden_sizes (tuple): Actor网络隐藏层配置
+            critic_hidden_sizes (tuple): Critic网络隐藏层配置
+            noise_sigma (float): 探索噪音初始标准差
+            noise_decay (float): 噪音衰减率
+            min_noise (float): 最小噪音标准差
         """
         # 设置随机种子
         if seed is not None:
@@ -234,7 +248,7 @@ class MADDPG:
         self.n_agents = len(agent_ids)
         self.obs_dim = obs_dim
         self.action_dim = action_dim
-        self.batch_size = batch_size
+        self.batch_size = max_batch_size
         self.gamma = gamma
         self.tau = tau
         self.device = device
@@ -249,7 +263,12 @@ class MADDPG:
                 global_obs_dim=global_obs_dim,
                 actor_lr=actor_lr,
                 critic_lr=critic_lr,
-                device=device
+                device=device,
+                actor_hidden_sizes=actor_hidden_sizes,
+                critic_hidden_sizes=critic_hidden_sizes,
+                noise_sigma=noise_sigma,
+                noise_decay=noise_decay,
+                min_noise=min_noise
             )
         
         # 创建共享的经验回放缓冲区
@@ -294,16 +313,23 @@ class MADDPG:
         """
         动态调整批次大小，适配环境特点
         
+        使用配置的max_batch_size作为上限，根据缓冲区大小动态调整
+        
         Returns:
             int: 当前应使用的批次大小
         """
         buffer_size = len(self.replay_buffer)
-        if buffer_size < 32:
-            return min(8, buffer_size)
-        elif buffer_size < 128:
-            return min(16, buffer_size)
+        max_batch_size = self.batch_size  # 使用配置的最大batch_size
+        
+        if buffer_size < max_batch_size // 2:
+            # 缓冲区较小时，使用较小的batch_size
+            return min(max_batch_size // 4, buffer_size)
+        elif buffer_size < max_batch_size:
+            # 缓冲区中等时，使用中等的batch_size
+            return min(max_batch_size // 2, buffer_size)
         else:
-            return min(32, buffer_size)
+            # 缓冲区足够时，使用配置的最大batch_size
+            return min(max_batch_size, buffer_size)
     
     def _parse_batch_experiences(self, batch_experiences):
         """
@@ -417,31 +443,16 @@ class MADDPG:
         new_actions = agent.actor(obs_tensor)
         
         # 构建全局观测和动作张量（用于Critic网络输入）
-        # 这里需要创建一个包含所有智能体信息的张量
+        # 使用 organize_global_state 函数确保去重优化
         global_states_list = []
         
         for i in range(batch_size):
-            # 当前智能体观测（需要展平）
-            current_agent_obs = process_observations(batch_obs[i][agent_id])
+            # 构建包含当前智能体新动作的动作字典
+            current_actions = batch_actions[i].copy()
+            current_actions[agent_id] = new_actions[i].detach().cpu().numpy()
             
-            # 其他智能体观测
-            other_obs = []
-            for other_id in self.agent_ids:
-                if other_id != agent_id:
-                    other_agent_obs = process_observations(batch_obs[i][other_id])
-                    other_obs.append(other_agent_obs)
-            
-            # 其他智能体动作
-            other_actions = []
-            for other_id in self.agent_ids:
-                if other_id != agent_id:
-                    other_actions.append(batch_actions[i][other_id])
-            
-            # 组合所有特征
-            all_obs = np.concatenate([current_agent_obs] + other_obs)
-            all_actions = np.concatenate([new_actions[i].detach().cpu().numpy()] + other_actions)
-            
-            global_state = np.concatenate([all_obs, all_actions])
+            # 使用统一的全局状态组织函数（去重优化）
+            global_state = organize_global_state(batch_obs[i], current_actions)
             global_states_list.append(global_state)
         
         global_states_tensor = torch.FloatTensor(np.array(global_states_list)).to(self.device)
@@ -527,43 +538,37 @@ def process_observations(observation):
 
 def organize_global_state(observations, actions):
     """
-    组织全局状态信息，用于Critic网络输入
+    组织全局状态信息，去除重复数据（优化版本）
     
     将所有智能体的观测和动作信息组织成集中式输入向量。
-    假设每个observation是字典格式，包含可展平的数组数据。
+    优化策略：去除重复的全局价格信息，减少参数量。
     
     Args:
-        observations (dict): 所有智能体的观测 {agent_id: observation}
-        actions (dict): 所有智能体的动作 {agent_id: action}
+        observations (dict): 所有智能体的观测 {agent_id: observation_dict}
+        actions (dict): 所有智能体的动作 {agent_id: action_array}
     
     Returns:
-        np.ndarray: 全局状态向量
+        np.ndarray: 优化后的全局状态向量
     """
-    # 提取并展平所有观测信息
-    obs_features = []
     sorted_agents = sorted(observations.keys())  # 确保顺序一致
     
+    # 1. 全局价格历史（去重：所有agent观测中的价格信息相同，只取一份）
+    global_prices = observations[sorted_agents[0]]["last_round_all_prices"].flatten()
+    
+    # 2. 所有智能体充电流量（无重复：每个agent的流量不同，需要全部保留）
+    all_flows = []
     for agent_id in sorted_agents:
-        agent_obs = observations[agent_id]
-        if isinstance(agent_obs, dict):
-            # 如果观测是字典，展平所有数值
-            for key, value in agent_obs.items():
-                obs_features.append(np.array(value).flatten())
-        else:
-            # 如果观测是数组，直接展平
-            obs_features.append(np.array(agent_obs).flatten())
+        flow = observations[agent_id]["own_charging_flow"].flatten()
+        all_flows.append(flow)
+    all_charging_flows = np.concatenate(all_flows)
     
-    # 提取并展平所有动作信息
-    action_features = []
+    # 3. 所有智能体当前动作（无重复：每个agent动作不同）
+    all_actions = []
     for agent_id in sorted_agents:
-        action = actions[agent_id]
-        action_features.append(np.array(action).flatten())
+        all_actions.append(actions[agent_id].flatten())
+    all_current_actions = np.concatenate(all_actions)
     
-    # 组织全局状态向量
-    all_features = obs_features + action_features
-    global_state = np.concatenate(all_features)
-    
-    return global_state
+    return np.concatenate([global_prices, all_charging_flows, all_current_actions])
 
 
 def normalize_rewards(rewards):

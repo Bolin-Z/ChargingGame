@@ -114,6 +114,47 @@ class EVCSChargingGameEnv(ParallelEnv):
             dtype=np.float32
         )
     
+    def global_state_space(self) -> spaces.Box:
+        """
+        返回全局状态空间定义（去重优化版本）
+        
+        全局状态组成：
+        - 全局价格历史: [0,1] 归一化价格，去重后只保留一份
+        - 所有智能体充电流量: [0,+inf] 车辆数目（语义上为整型，但使用float32以兼容ML框架）
+        - 所有智能体动作: [0,1] 归一化报价动作
+        
+        Returns:
+            spaces.Box: 全局状态空间
+        """
+        # 维度计算
+        price_dim = self.n_agents * self.n_periods      # 全局价格历史（去重）
+        flow_dim = self.n_agents * self.n_periods       # 所有智能体充电流量
+        action_dim = self.n_agents * self.n_periods     # 所有智能体动作
+        
+        # 边界设置
+        # 1. 价格部分: [0, 1] 归一化
+        price_low = np.zeros(price_dim, dtype=np.float32)
+        price_high = np.ones(price_dim, dtype=np.float32)
+        
+        # 2. 充电流量部分: [0, +inf] 车辆数目（使用float32兼容ML框架）
+        flow_low = np.zeros(flow_dim, dtype=np.float32)
+        flow_high = np.full(flow_dim, np.inf, dtype=np.float32)
+        
+        # 3. 动作部分: [0, 1] 归一化报价
+        action_low = np.zeros(action_dim, dtype=np.float32)
+        action_high = np.ones(action_dim, dtype=np.float32)
+        
+        # 拼接边界
+        low = np.concatenate([price_low, flow_low, action_low])
+        high = np.concatenate([price_high, flow_high, action_high])
+        
+        return spaces.Box(
+            low=low, 
+            high=high, 
+            shape=(price_dim + flow_dim + action_dim,),
+            dtype=np.float32
+        )
+    
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> tuple[Dict[str, Any], Dict[str, Any]]:
         """ 重置环境 """
         # 设置随机种子
@@ -155,8 +196,8 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 1. 将归一化动作映射到实际价格并更新价格历史
         self.__update_prices_from_actions(actions)
         
-        # 2. 运行UE-DTA仿真获取充电流量
-        charging_flows = self.__run_simulation()
+        # 2. 运行UE-DTA仿真获取充电流量和统计信息
+        charging_flows, ue_info = self.__run_simulation()
         
         # 3. 计算奖励
         rewards = self.__calculate_rewards(charging_flows)
@@ -167,9 +208,12 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 5. 更新状态
         self.current_step += 1
         
-        # 6. 判断终止条件
-        terminated = self.__check_convergence()
+        # 6. 计算相对变化率并判断终止条件
+        relative_change_rate = self.__calculate_relative_change_rate()
+        terminated = relative_change_rate < self.convergence_threshold
         truncated = self.current_step >= self.max_steps
+        
+        logging.debug(f"步骤{self.current_step}: 平均相对变化={relative_change_rate:.6f}, 收敛阈值={self.convergence_threshold}, 是否收敛={terminated}")
         
         # 7. 生成新观测
         observations = self.__get_observations()
@@ -177,7 +221,12 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 8. 构建返回值
         terminations = {agent: terminated for agent in self.agents}
         truncations = {agent: truncated for agent in self.agents}
-        infos = {agent: {} for agent in self.agents}
+        infos = {
+            'ue_converged': ue_info['ue_converged'],
+            'ue_iterations': ue_info['ue_iterations'], 
+            'ue_stats': ue_info['ue_stats'],
+            'relative_change_rate': relative_change_rate
+        }
         
         logging.debug(f"步骤{self.current_step}: 奖励={rewards}, 终止={terminated}, 截断={truncated}")
         return observations, rewards, terminations, truncations, infos
@@ -533,27 +582,25 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return new_prices
 
-    def __check_convergence(self) -> bool:
+    def __calculate_relative_change_rate(self) -> float:
         """
-        检查价格是否收敛（基于L2范数）
+        计算价格相对变化率
         
         Returns:
-            bool: 是否已收敛
+            float: 平均相对变化率，如果价格历史不足则返回正无穷
         """
         if len(self.price_history) < 2:
-            return False
+            return float('inf')
             
         # 计算所有智能体价格向量的变化
         current_prices = self.price_history[-1]
         previous_prices = self.price_history[-2]
         
-        # 使用L2范数判断收敛
-        price_change = np.linalg.norm(current_prices - previous_prices)
+        # 使用相对变化率，避免除零
+        relative_changes = np.abs(current_prices - previous_prices) / (previous_prices + 1e-8)
+        avg_relative_change = np.mean(relative_changes)
         
-        converged = price_change < self.convergence_threshold
-        logging.debug(f"步骤{self.current_step}: 价格变化L2范数={price_change:.6f}, 收敛阈值={self.convergence_threshold}, 是否收敛={converged}")
-        
-        return converged
+        return avg_relative_change
 
     def __create_simulation_world(self) -> World:
         """
@@ -981,12 +1028,12 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return stats, new_routes_specified, charging_flows
 
-    def __run_simulation(self) -> np.ndarray:
+    def __run_simulation(self) -> tuple[np.ndarray, dict]:
         """
         运行基于day-to-day动态均衡的UXsim仿真并返回充电流量统计
         
         Returns:
-            np.ndarray: 充电流量矩阵 (n_agents, n_periods)
+            tuple: (充电流量矩阵 (n_agents, n_periods), UE统计信息dict)
         """
         logging.debug("开始UE-DTA求解...")
         
@@ -1051,7 +1098,14 @@ class EVCSChargingGameEnv(ParallelEnv):
         final_cost_gap = final_stats['all_avg_cost_gap']
         logging.debug(f"UE-DTA求解完成: {convergence_status} | 最终成本差: {final_cost_gap:.3f} | 迭代次数: {iteration+1}")
         
-        return final_charging_flows
+        # 构建UE统计信息
+        ue_info = {
+            'ue_converged': convergence_status == "收敛",
+            'ue_iterations': iteration + 1,
+            'ue_stats': final_stats  # __route_choice_update的最后统计(包含final_cost_gap)
+        }
+        
+        return final_charging_flows, ue_info
     
     def __display_final_stats(self, stats: Dict[str, float]):
         """

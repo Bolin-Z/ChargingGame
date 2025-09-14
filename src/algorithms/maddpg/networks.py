@@ -14,37 +14,48 @@ class ActorNetwork(nn.Module):
     """
     Actor网络：将观测映射到动作
     
-    可配置的策略网络架构，支持任意输入/输出/隐藏层维度。
+    可配置的策略网络架构，支持任意层数和隐藏层维度。
     输出使用Sigmoid激活函数确保动作值在[0,1]范围内。
     """
     
-    def __init__(self, obs_dim, action_dim, hidden_sizes=[64, 64]):
+    def __init__(self, obs_dim, action_dim, hidden_sizes=(64, 64)):
         """
         初始化Actor网络
         
         Args:
             obs_dim: 观测空间维度
             action_dim: 动作空间维度  
-            hidden_sizes: 隐藏层维度列表
+            hidden_sizes: 隐藏层维度元组，支持任意层数
         """
         super(ActorNetwork, self).__init__()
         
         self.obs_dim = obs_dim
         self.action_dim = action_dim
+        self.hidden_sizes = hidden_sizes
         
-        # 构建网络层
-        self.fc1 = nn.Linear(obs_dim, hidden_sizes[0])
-        self.fc2 = nn.Linear(hidden_sizes[0], hidden_sizes[1])
-        self.fc3 = nn.Linear(hidden_sizes[1], action_dim)
+        # 构建网络层列表
+        self.layers = nn.ModuleList()
+        
+        # 输入层到第一个隐藏层
+        prev_dim = obs_dim
+        for hidden_dim in hidden_sizes:
+            self.layers.append(nn.Linear(prev_dim, hidden_dim))
+            prev_dim = hidden_dim
+        
+        # 最后一层：隐藏层到输出层
+        self.output_layer = nn.Linear(prev_dim, action_dim)
         
         # 权重初始化
         self._init_weights()
     
     def _init_weights(self):
         """Xavier均匀分布权重初始化"""
-        for layer in [self.fc1, self.fc2, self.fc3]:
+        for layer in self.layers:
             nn.init.xavier_uniform_(layer.weight)
             nn.init.constant_(layer.bias, 0)
+        
+        nn.init.xavier_uniform_(self.output_layer.weight)
+        nn.init.constant_(self.output_layer.bias, 0)
     
     def forward(self, obs):
         """
@@ -56,9 +67,14 @@ class ActorNetwork(nn.Module):
         Returns:
             torch.Tensor: 动作张量 (batch_size, action_dim), 值域[0,1]
         """
-        x = torch.relu(self.fc1(obs))
-        x = torch.relu(self.fc2(x))
-        x = torch.sigmoid(self.fc3(x))  # Sigmoid确保输出范围[0,1]
+        x = obs
+        
+        # 通过所有隐藏层
+        for layer in self.layers:
+            x = torch.relu(layer(x))
+        
+        # 输出层使用Sigmoid激活
+        x = torch.sigmoid(self.output_layer(x))
         return x
 
 
@@ -70,31 +86,42 @@ class CriticNetwork(nn.Module):
     用于中心化训练，接收全局状态信息并输出Q值估计。
     """
     
-    def __init__(self, input_dim, hidden_sizes=[128, 64]):
+    def __init__(self, input_dim, hidden_sizes=(128, 64)):
         """
         初始化Critic网络
         
         Args:
             input_dim: 输入维度（集中式信息）
-            hidden_sizes: 隐藏层维度列表
+            hidden_sizes: 隐藏层维度元组，支持任意层数
         """
         super(CriticNetwork, self).__init__()
         
         self.input_dim = input_dim
+        self.hidden_sizes = hidden_sizes
         
-        # 构建网络层
-        self.fc1 = nn.Linear(input_dim, hidden_sizes[0])
-        self.fc2 = nn.Linear(hidden_sizes[0], hidden_sizes[1])
-        self.fc3 = nn.Linear(hidden_sizes[1], 1)  # 输出Q值
+        # 构建网络层列表
+        self.layers = nn.ModuleList()
+        
+        # 输入层到第一个隐藏层
+        prev_dim = input_dim
+        for hidden_dim in hidden_sizes:
+            self.layers.append(nn.Linear(prev_dim, hidden_dim))
+            prev_dim = hidden_dim
+        
+        # 最后一层：隐藏层到输出层（Q值）
+        self.output_layer = nn.Linear(prev_dim, 1)
         
         # 权重初始化
         self._init_weights()
     
     def _init_weights(self):
         """Xavier均匀分布权重初始化"""
-        for layer in [self.fc1, self.fc2, self.fc3]:
+        for layer in self.layers:
             nn.init.xavier_uniform_(layer.weight)
             nn.init.constant_(layer.bias, 0)
+        
+        nn.init.xavier_uniform_(self.output_layer.weight)
+        nn.init.constant_(self.output_layer.bias, 0)
     
     def forward(self, global_state):
         """
@@ -106,7 +133,12 @@ class CriticNetwork(nn.Module):
         Returns:
             torch.Tensor: Q值张量 (batch_size, 1)
         """
-        x = torch.relu(self.fc1(global_state))
-        x = torch.relu(self.fc2(x))
-        x = self.fc3(x)  # 线性输出Q值
+        x = global_state
+        
+        # 通过所有隐藏层
+        for layer in self.layers:
+            x = torch.relu(layer(x))
+        
+        # 输出层线性激活（Q值可以为负）
+        x = self.output_layer(x)
         return x
