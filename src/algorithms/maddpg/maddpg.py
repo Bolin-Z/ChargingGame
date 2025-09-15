@@ -84,7 +84,7 @@ class GaussianNoise:
     适用于连续动作空间的探索。
     """
     
-    def __init__(self, action_dim, sigma=0.2, sigma_decay=0.9995, min_sigma=0.01):
+    def __init__(self, action_dim, sigma, sigma_decay, min_sigma):
         """
         初始化高斯噪音
         

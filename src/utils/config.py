@@ -32,9 +32,9 @@ class MADDPGConfig:
     max_batch_size: int = 64     # 最大批次大小，实际会根据缓冲区大小动态调整
     
     # === 探索策略配置 ===
-    noise_sigma: float = 0.2     # 高斯噪音初始标准差，控制探索强度
-    noise_decay: float = 0.9995  # 噪音衰减率，每次调用后噪音强度衰减
-    min_noise: float = 0.01      # 最小噪音标准差，防止探索完全停止
+    noise_sigma: float = 0.1     # 高斯噪音初始标准差，控制探索强度
+    noise_decay: float = 0.99  # 噪音衰减率，每次调用后噪音强度衰减
+    min_noise: float = 0.0005      # 最小噪音标准差，防止探索完全停止
 
 
 @dataclass
