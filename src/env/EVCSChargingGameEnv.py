@@ -17,7 +17,6 @@ from uxsim import World
 import networkx as nx
 from itertools import islice
 from math import floor
-from texttable import Texttable
 import numpy as np
 from tqdm import tqdm
 from pettingzoo import ParallelEnv
