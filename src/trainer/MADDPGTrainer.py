@@ -10,6 +10,7 @@ MADDPG训练器
 import sys
 import os
 import numpy as np
+import torch
 from typing import Dict, List, Tuple, Any
 from tqdm import tqdm
 import logging
@@ -46,6 +47,16 @@ class MADDPGTrainer:
         self.config = training_config
         self.maddpg_config = maddpg_config
         
+        # 处理设备配置
+        if training_config.device == 'auto':
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        else:
+            self.device = training_config.device
+            
+        print(f"使用设备: {self.device}")
+        if self.device == 'cuda':
+            print(f"GPU: {torch.cuda.get_device_name(0)}")
+        
         # 1. 创建环境
         self.env = EVCSChargingGameEnv(
             network_dir=training_config.network_dir,
@@ -68,7 +79,19 @@ class MADDPGTrainer:
             obs_dim=obs_dim,
             action_dim=action_dim,
             global_obs_dim=global_obs_dim,
-            **maddpg_config.__dict__
+            buffer_capacity=maddpg_config.buffer_capacity,
+            max_batch_size=maddpg_config.max_batch_size,
+            actor_lr=maddpg_config.actor_lr,
+            critic_lr=maddpg_config.critic_lr,
+            gamma=maddpg_config.gamma,
+            tau=maddpg_config.tau,
+            seed=training_config.seed,
+            device=self.device,
+            actor_hidden_sizes=maddpg_config.actor_hidden_sizes,
+            critic_hidden_sizes=maddpg_config.critic_hidden_sizes,
+            noise_sigma=maddpg_config.noise_sigma,
+            noise_decay=maddpg_config.noise_decay,
+            min_noise=maddpg_config.min_noise
         )
         
         # 4. 训练状态跟踪
