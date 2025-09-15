@@ -111,7 +111,7 @@ class MADDPGTrainer:
         """
         convergence_count = 0
         
-        with tqdm(total=self.config.max_episodes, desc="寻找纳什均衡", unit="episode") as episode_pbar:
+        with tqdm(total=self.config.max_episodes, desc="寻找纳什均衡", unit="episode", dynamic_ncols=True) as episode_pbar:
             
             for episode in range(self.config.max_episodes):
                 
@@ -160,7 +160,7 @@ class MADDPGTrainer:
             Tuple[bool, int]: (是否收敛, episode长度)
         """
         with tqdm(total=self.config.max_steps_per_episode, 
-                  desc=f"Episode {episode}", unit="step", leave=False) as step_pbar:
+                  desc=f"Episode {episode}", unit="step", leave=False, dynamic_ncols=True) as step_pbar:
             
             for step in range(self.config.max_steps_per_episode):
                 

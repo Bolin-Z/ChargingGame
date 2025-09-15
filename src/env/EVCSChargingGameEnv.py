@@ -1072,7 +1072,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         # 使用tqdm显示进度（简化输出）
         with tqdm(range(self.ue_max_iterations), desc="UE-DTA求解", leave=False, 
-                  bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]') as pbar:
+                  bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]', dynamic_ncols=True) as pbar:
             for iteration in pbar:
                 # 创建新的仿真实例
                 W = self.__create_simulation_world()
