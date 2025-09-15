@@ -13,6 +13,8 @@ import numpy as np
 from typing import Dict, List, Tuple, Any
 from tqdm import tqdm
 import logging
+import json
+from datetime import datetime
 
 # 添加项目路径以便导入模块
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -71,8 +73,7 @@ class MADDPGTrainer:
         # 4. 训练状态跟踪
         self.convergence_episodes = []      # 收敛的episode列表
         self.episode_lengths = []           # 每个episode的长度
-        self.step_records = []              # 每步详细记录
-        self.total_ue_iterations = 0        # 总UE仿真迭代次数
+        self.step_records = []              # 每步详细记录（包含所有训练数据）
     
     def train(self) -> Dict:
         """
@@ -114,7 +115,14 @@ class MADDPGTrainer:
                 
                 episode_pbar.update(1)
         
-        return self._generate_training_results()
+        # 生成训练结果
+        results = self._generate_training_results()
+        
+        # 自动保存训练数据（使用配置的输出目录）
+        experiment_dir = self.save_training_data(self.config.output_dir)
+        results['experiment_dir'] = experiment_dir
+        
+        return results
     
     def _run_episode(self, episode: int, observations: Dict) -> Tuple[bool, int]:
         """
@@ -135,6 +143,9 @@ class MADDPGTrainer:
                 # 智能体决策
                 actions = self.maddpg.take_action(observations, add_noise=True)
                 
+                # 获取实际价格（在step之前）
+                actual_prices = self.env.actions_to_prices(actions)
+                
                 # 环境响应
                 next_observations, rewards, terminations, truncations, infos = self.env.step(actions)
                 
@@ -147,14 +158,12 @@ class MADDPGTrainer:
                     'episode': episode,
                     'step': step,
                     'actions': actions.copy(),
+                    'actual_prices': actual_prices.copy(),
                     'rewards': rewards.copy(),
                     'ue_info': infos,
                     'relative_change_rate': infos.get('relative_change_rate', float('inf'))
                 })
                 
-                # 累计UE迭代次数
-                if 'ue_iterations' in infos:
-                    self.total_ue_iterations += infos['ue_iterations']
                 
                 # 检查是否收敛（纳什均衡）
                 if terminations.get('__all__', False):
@@ -265,12 +274,74 @@ class MADDPGTrainer:
         total_episodes = len(self.episode_lengths)
         total_convergences = len(self.convergence_episodes)
         
+        # 从step_records计算总UE迭代次数
+        total_ue_iterations = sum(
+            record['ue_info'].get('ue_iterations', 0) 
+            for record in self.step_records
+        )
+        
         return {
             'total_episodes': total_episodes,
             'total_convergences': total_convergences,
             'convergence_rate': total_convergences / total_episodes if total_episodes > 0 else 0.0,
             'average_episode_length': np.mean(self.episode_lengths) if self.episode_lengths else 0.0,
-            'total_ue_iterations': self.total_ue_iterations,
+            'total_ue_iterations': total_ue_iterations,
             'convergence_episodes': self.convergence_episodes,
             'final_nash_equilibrium': self.get_nash_equilibrium()
         }
+    
+    def save_training_data(self, output_dir: str = "results") -> str:
+        """
+        保存训练数据到JSON文件
+        
+        Args:
+            output_dir: 输出根目录
+            
+        Returns:
+            str: 保存的实验目录路径
+        """
+        # 创建带时间戳的实验目录
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        experiment_dir = os.path.join(output_dir, f"experiment_{timestamp}")
+        os.makedirs(experiment_dir, exist_ok=True)
+        
+        # 保存step_records到JSON文件
+        step_records_path = os.path.join(experiment_dir, "step_records.json")
+        
+        # 准备保存数据，处理numpy数组
+        save_data = {
+            "metadata": {
+                "timestamp": datetime.now().isoformat(),
+                "total_episodes": len(self.episode_lengths),
+                "total_steps": len(self.step_records),
+                "convergence_episodes": self.convergence_episodes,
+                "episode_lengths": self.episode_lengths
+            },
+            "records": []
+        }
+        
+        # 转换step_records，处理numpy数组
+        for record in self.step_records:
+            converted_record = {
+                "episode": int(record["episode"]),
+                "step": int(record["step"]),
+                "actions": {k: v.tolist() if hasattr(v, 'tolist') else v 
+                           for k, v in record["actions"].items()},
+                "actual_prices": {k: v.tolist() if hasattr(v, 'tolist') else v 
+                                 for k, v in record["actual_prices"].items()},
+                "rewards": {k: float(v) for k, v in record["rewards"].items()},
+                "ue_info": record["ue_info"],
+                "relative_change_rate": float(record["relative_change_rate"])
+            }
+            save_data["records"].append(converted_record)
+        
+        # 保存到JSON文件
+        with open(step_records_path, 'w', encoding='utf-8') as f:
+            json.dump(save_data, f, indent=2, ensure_ascii=False)
+        
+        print(f"💾 训练数据已保存到: {experiment_dir}")
+        print(f"   📁 实验目录: {experiment_dir}")
+        print(f"   📄 数据文件: step_records.json")
+        print(f"   📊 记录数量: {len(self.step_records)} 步")
+        
+        return experiment_dir
