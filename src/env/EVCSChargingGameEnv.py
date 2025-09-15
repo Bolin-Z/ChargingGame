@@ -39,7 +39,8 @@ class EVCSChargingGameEnv(ParallelEnv):
                  network_name: str,
                  random_seed: Optional[int] = 42,
                  max_steps: int = 1000,
-                 convergence_threshold: float = 0.01):
+                 convergence_threshold: float = 0.01,
+                 stable_steps_required: int = 3):
         """
         初始化充电站博弈环境
         
@@ -49,6 +50,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             random_seed: 随机种子
             max_steps: 单episode最大步数
             convergence_threshold: 博弈价格收敛阈值
+            stable_steps_required: 稳定收敛所需的连续步数
         """
         super().__init__()
         
@@ -59,6 +61,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         self.env_random_seed = random_seed
         self.max_steps = max_steps
         self.convergence_threshold = convergence_threshold
+        self.stable_steps_required = stable_steps_required
 
         # 初始化网络和路径
         self.__load_case(network_dir, network_name)
@@ -76,6 +79,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         self.current_step = 0
         self.price_history = []  # List[np.array(n_agents, n_periods)]
         self.charging_flow_history = []  # List[np.array(n_agents, n_periods)]
+        self.convergence_counter = 0  # 连续收敛步数计数器
     
     @property 
     def possible_agents(self):
@@ -166,6 +170,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         self.current_step = 0
         self.price_history = []  # 环境启动时无报价历史
         self.charging_flow_history = []  # 环境启动时无流量历史
+        self.convergence_counter = 0  # 重置连续收敛计数器
         
         # 清理之前的路径分配（如果存在）
         if hasattr(self, 'current_routes_specified'):
@@ -209,10 +214,18 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         # 6. 计算相对变化率并判断终止条件
         relative_change_rate = self.__calculate_relative_change_rate()
-        terminated = relative_change_rate < self.convergence_threshold
+        single_step_converged = relative_change_rate < self.convergence_threshold
+        
+        # 使用计数器检查稳定收敛
+        if single_step_converged:
+            self.convergence_counter += 1
+        else:
+            self.convergence_counter = 0  # 重置计数器
+            
+        terminated = self.convergence_counter >= self.stable_steps_required
         truncated = self.current_step >= self.max_steps
         
-        logging.debug(f"步骤{self.current_step}: 平均相对变化={relative_change_rate:.6f}, 收敛阈值={self.convergence_threshold}, 是否收敛={terminated}")
+        logging.debug(f"步骤{self.current_step}: 平均相对变化={relative_change_rate:.6f}, 收敛阈值={self.convergence_threshold}, 连续收敛步数={self.convergence_counter}/{self.stable_steps_required}, 是否收敛={terminated}")
         
         # 7. 生成新观测
         observations = self.__get_observations()

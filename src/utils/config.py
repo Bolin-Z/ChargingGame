@@ -51,6 +51,7 @@ class TrainingConfig:
     
     # === 收敛控制配置 ===
     convergence_threshold: float = 0.01  # 纳什均衡价格收敛阈值，价格变化小于此值认为收敛
+    stable_steps_required: int = 5       # 稳定收敛所需的连续步数，连续这么多步都小于阈值才认为收敛
     
     # === 系统配置 ===
     seed: int = 42                       # 随机种子，保证实验可重复

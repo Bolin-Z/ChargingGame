@@ -52,7 +52,8 @@ class MADDPGTrainer:
             network_name=training_config.network_name,
             random_seed=training_config.seed,
             max_steps=training_config.max_steps_per_episode,
-            convergence_threshold=training_config.convergence_threshold
+            convergence_threshold=training_config.convergence_threshold,
+            stable_steps_required=training_config.stable_steps_required
         )
         
         # 2. 从环境获取维度信息
@@ -166,7 +167,7 @@ class MADDPGTrainer:
                 
                 
                 # 检查是否收敛（纳什均衡）
-                if terminations.get('__all__', False):
+                if all(terminations.values()):
                     step_pbar.set_postfix({"状态": "收敛"})
                     step_pbar.update(self.config.max_steps_per_episode - step)
                     return True, step + 1
