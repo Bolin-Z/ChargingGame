@@ -96,18 +96,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **预期输出**：
 ```python
-# 纳什均衡解
-equilibrium_strategy = {
-    "充电站1": [p_1_1, p_1_2, ..., p_1_T],  # T个时段的价格
-    "充电站2": [p_2_1, p_2_2, ..., p_2_T],
-    # ... 其他充电站
-}
-
-# 均衡结果
-equilibrium_result = {
-    "charging_flows": {...},    # 各站充电流量
-    "total_revenues": {...},    # 各站收益  
-    "system_efficiency": ...    # 系统效率指标
+# 多个纳什均衡解（如果存在）
+nash_equilibria = {
+    "status": "converged",
+    "total_equilibria": 2,      # 找到的均衡解数量
+    "equilibria": [
+        {
+            "episode": 5,
+            "equilibrium_prices": {
+                "充电站1": [p_1_1, p_1_2, ..., p_1_T],
+                "充电站2": [p_2_1, p_2_2, ..., p_2_T],
+                # ... 其他充电站
+            },
+            "equilibrium_rewards": {...},  # 各站收益（稳定步骤平均值）
+            "stable_steps_count": 5        # 用于计算平均值的稳定步数
+        },
+        {
+            "episode": 8,
+            "equilibrium_prices": {...},   # 另一个均衡解
+            "equilibrium_rewards": {...},
+            "stable_steps_count": 5
+        }
+    ],
+    "latest_equilibrium": {...}  # 最新的均衡解（向后兼容）
 }
 ```
 
@@ -293,7 +304,7 @@ relative_change = abs(current_prices - prev_prices) / (prev_prices + 1e-8)
 converged = mean(relative_change) < threshold
 
 # 训练层：连续收敛检测
-stable_convergence = len(recent_convergence_episodes) >= 3
+stable_convergence = len(recent_convergence_episodes) >= stable_episodes_required
 ```
 
 #### 进度监控
@@ -384,6 +395,8 @@ class TrainingConfig:
     max_episodes: int = 100                  # 最大训练轮数
     max_steps_per_episode: int = 50          # 每轮最大步数
     convergence_threshold: float = 0.01      # 纳什均衡收敛阈值
+    stable_steps_required: int = 5           # 单episode内连续收敛步数要求
+    stable_episodes_required: int = 3        # 训练终止的连续收敛episodes要求
 
 # 修改算法配置  
 class MADDPGConfig:
@@ -470,7 +483,7 @@ ChargingGame/
 #### 算法参数调优
 - **网络结构**：调整 `actor_hidden_sizes` 和 `critic_hidden_sizes`
 - **学习参数**：修改学习率、批次大小、探索噪音等
-- **收敛条件**：调整 `convergence_threshold` 和 `stable_steps_required`
+- **收敛条件**：调整 `convergence_threshold`、`stable_steps_required` 和 `stable_episodes_required`
 
 ## 关键技术决策
 

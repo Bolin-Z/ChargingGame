@@ -46,18 +46,24 @@ def print_results(results):
     # 纳什均衡解
     nash_eq = results['final_nash_equilibrium']
     if nash_eq['status'] == 'converged':
-        print(f"🎉 找到纳什均衡解!")
-        print(f"   收敛Episode: {nash_eq['episode']}")
-        print(f"   收敛步骤: {nash_eq['step']}")
-        print(f"💰 均衡价格策略:")
-        for agent_id, prices in nash_eq['equilibrium_prices'].items():
-            price_str = ", ".join([f"{p:.3f}" for p in prices])
-            print(f"   充电站{agent_id}: [{price_str}]")
-        print(f"💵 均衡收益:")
-        for agent_id, reward in nash_eq['equilibrium_rewards'].items():
-            print(f"   充电站{agent_id}: {reward:.2f}")
+        total_equilibria = nash_eq['total_equilibria']
+        print(f"🎉 找到 {total_equilibria} 个纳什均衡解!")
+        
+        # 显示所有均衡解
+        for i, equilibrium in enumerate(nash_eq['equilibria'], 1):
+            print(f"\n📊 均衡解 #{i}:")
+            print(f"   收敛Episode: {equilibrium['episode']}")
+            print(f"   收敛步骤: {equilibrium['final_step']}")
+            print(f"   稳定步数: {equilibrium['stable_steps_count']}")
+            print(f"💰 均衡价格策略:")
+            for agent_id, prices in equilibrium['equilibrium_prices'].items():
+                price_str = ", ".join([f"{p:.3f}" for p in prices])
+                print(f"   充电站{agent_id}: [{price_str}]")
+            print(f"💵 均衡收益:")
+            for agent_id, reward in equilibrium['equilibrium_rewards'].items():
+                print(f"   充电站{agent_id}: {reward:.2f}")
     else:
-        print(f"⚠️  未找到纳什均衡: {nash_eq['message']}")
+        print(f"⚠️  未找到纳什均衡: {nash_eq.get('message', '未知错误')}")
     
     print("=" * 60)
 

@@ -585,7 +585,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             actions: 智能体动作字典 {agent_id: np.array(n_periods)} 值域[0,1]
         """
         # 使用公共接口获取价格矩阵
-        new_prices = self.actions_to_prices(actions)
+        new_prices = self.actions_to_prices_matrix(actions)
         
         # 添加到价格历史
         self.price_history.append(new_prices)
@@ -686,7 +686,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return W
 
-    def actions_to_prices(self, actions: Dict[str, np.ndarray]) -> np.ndarray:
+    def actions_to_prices_matrix(self, actions: Dict[str, np.ndarray]) -> np.ndarray:
         """
         将归一化动作映射到实际价格（纯函数，不修改环境状态）
         
@@ -710,6 +710,33 @@ class EVCSChargingGameEnv(ParallelEnv):
                 prices[agent_idx, period] = actual_price
         
         return prices
+
+    def actions_to_prices_dict(self, actions: Dict[str, np.ndarray]) -> Dict[str, List[float]]:
+        """
+        将归一化动作映射到实际价格字典（纯函数，不修改环境状态）
+        
+        Args:
+            actions: 智能体动作字典 {agent_id: np.array(n_periods)} 值域[0,1]
+        
+        Returns:
+            Dict[str, List[float]]: 价格字典 {agent_name: [period_prices]}
+        """
+        prices_dict = {}
+        
+        for agent_name, action in actions.items():
+            bounds = self.charging_nodes[agent_name]
+            min_price, max_price = bounds[0], bounds[1]
+            
+            agent_prices = []
+            for period in range(self.n_periods):
+                # 将[0,1]动作映射到[min_price, max_price]
+                normalized_action = action[period]
+                actual_price = min_price + normalized_action * (max_price - min_price)
+                agent_prices.append(float(actual_price))
+            
+            prices_dict[agent_name] = agent_prices
+        
+        return prices_dict
 
     def __initialize_routes(self, dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, use_greedy: bool = True) -> Dict[str, list]:
         """

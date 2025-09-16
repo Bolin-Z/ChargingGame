@@ -168,7 +168,7 @@ class MADDPGTrainer:
                 actions = self.maddpg.take_action(observations, add_noise=True)
                 
                 # 获取实际价格（在step之前）
-                actual_prices = self.env.actions_to_prices(actions)
+                actual_prices = self.env.actions_to_prices_dict(actions)
                 
                 # 环境响应
                 next_observations, rewards, terminations, truncations, infos = self.env.step(actions)
@@ -211,51 +211,79 @@ class MADDPGTrainer:
     
     def get_nash_equilibrium(self) -> Dict:
         """
-        获取纳什均衡解（从收敛的episode中获取）
+        获取所有纳什均衡解（从所有收敛的episode的稳定步骤中计算平均值）
         
         Returns:
-            Dict: 纳什均衡策略和统计，如果未找到收敛episode则返回None
+            Dict: 包含所有纳什均衡解的统计，格式为：
+                - status: 'converged' | 'no_convergence'
+                - total_equilibria: 找到的均衡解数量
+                - equilibria: List[Dict], 每个均衡解包含：
+                    - episode: episode编号
+                    - equilibrium_actions: 平均动作
+                    - equilibrium_prices: 平均价格  
+                    - equilibrium_rewards: 平均奖励
+                    - stable_steps_count: 稳定步数
         """
         if not self.convergence_episodes:
             return {
                 'status': 'no_convergence',
-                'message': '未找到收敛的episode'
+                'message': '未找到收敛的episode',
+                'total_equilibria': 0,
+                'equilibria': []
             }
         
-        # 获取最近一次收敛的episode
-        latest_convergence_episode = self.convergence_episodes[-1]
+        equilibria = []
         
-        # 从step_records中找到该episode的收敛步骤（最后一步）
-        convergence_steps = [
-            record for record in self.step_records 
-            if record['episode'] == latest_convergence_episode
-        ]
-        
-        if not convergence_steps:
-            return {
-                'status': 'no_data',
-                'message': f'未找到episode {latest_convergence_episode}的记录数据'
-            }
-        
-        # 获取收敛时的最后一步数据
-        final_step = convergence_steps[-1]
-        equilibrium_actions = final_step['actions']
-        
-        # 将归一化动作转换为实际价格
-        prices_array = self.env.actions_to_prices(equilibrium_actions)
-        actual_prices = {}
-        for agent_id, action in equilibrium_actions.items():
-            agent_idx = self.env.agent_name_mapping[str(agent_id)]
-            actual_prices[agent_id] = prices_array[agent_idx].tolist()
+        # 为每个收敛的episode计算纳什均衡解
+        for episode_idx in self.convergence_episodes:
+            # 从step_records中找到该episode的收敛步骤
+            convergence_steps = [
+                record for record in self.step_records 
+                if record['episode'] == episode_idx
+            ]
+            
+            if not convergence_steps:
+                continue
+            
+            # 获取收敛时的稳定步骤数据（最后 stable_steps_required 步）
+            stable_steps = convergence_steps[-self.config.stable_steps_required:]
+            
+            # 计算稳定步骤的平均动作
+            equilibrium_actions = {}
+            for agent in self.env.agents:
+                agent_actions = []
+                for step in stable_steps:
+                    agent_actions.append(step['actions'][agent])
+                # 计算平均动作
+                equilibrium_actions[agent] = np.mean(agent_actions, axis=0)
+            
+            # 将平均动作转换为实际价格
+            actual_prices = self.env.actions_to_prices_dict(equilibrium_actions)
+            
+            # 计算稳定步骤的平均奖励
+            equilibrium_rewards = {}
+            for agent in self.env.agents:
+                agent_rewards = []
+                for step in stable_steps:
+                    agent_rewards.append(step['rewards'][agent])
+                equilibrium_rewards[agent] = float(np.mean(agent_rewards))
+            
+            # 添加到均衡解列表
+            equilibria.append({
+                'episode': episode_idx,
+                'final_step': stable_steps[-1]['step'],
+                'stable_steps_count': len(stable_steps),
+                'equilibrium_actions': equilibrium_actions,
+                'equilibrium_prices': actual_prices,
+                'equilibrium_rewards': equilibrium_rewards,
+                'environment_info': stable_steps[-1]['ue_info']
+            })
         
         return {
             'status': 'converged',
-            'episode': latest_convergence_episode,
-            'step': final_step['step'],
-            'equilibrium_actions': equilibrium_actions,
-            'equilibrium_prices': actual_prices,
-            'equilibrium_rewards': final_step['rewards'],
-            'environment_info': final_step['ue_info']
+            'total_equilibria': len(equilibria),
+            'equilibria': equilibria,
+            'latest_equilibrium': equilibria[-1] if equilibria else None
         }
     
     def evaluate(self, num_episodes: int = 20) -> Dict:
@@ -283,11 +311,11 @@ class MADDPGTrainer:
         Returns:
             bool: 是否连续收敛，可用于提前终止训练
         """
-        if len(self.convergence_episodes) < 3:
+        if len(self.convergence_episodes) < self.config.stable_episodes_required:
             return False
         
-        # 检查最近3次episode是否都收敛
-        recent_episodes = list(range(len(self.episode_lengths)))[-3:]
+        # 检查最近stable_episodes_required次episode是否都收敛
+        recent_episodes = list(range(len(self.episode_lengths)))[-self.config.stable_episodes_required:]
         return all(ep in self.convergence_episodes for ep in recent_episodes)
     
     def _generate_training_results(self) -> Dict:
