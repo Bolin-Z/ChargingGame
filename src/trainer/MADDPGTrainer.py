@@ -242,9 +242,11 @@ class MADDPGTrainer:
         equilibrium_actions = final_step['actions']
         
         # 将归一化动作转换为实际价格
+        prices_array = self.env.actions_to_prices(equilibrium_actions)
         actual_prices = {}
         for agent_id, action in equilibrium_actions.items():
-            actual_prices[agent_id] = self.env.actions_to_prices({agent_id: action})[int(agent_id)]
+            agent_idx = self.env.agent_name_mapping[str(agent_id)]
+            actual_prices[agent_id] = prices_array[agent_idx].tolist()
         
         return {
             'status': 'converged',
