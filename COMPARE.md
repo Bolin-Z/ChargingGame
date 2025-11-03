@@ -583,3 +583,465 @@ nash_gap = max(improvement_gap_i for all i)
 **注意**：不建议绘制单个充电站的收益变化曲线进行算法对比
 - **原因**：不同算法找到的均衡解中，各充电站收益分配可能完全不同
 - **替代**：使用系统总收益进行对比（可以判断哪个均衡更优）
+
+---
+
+## 2. Independent DDPG (IDDPG)
+
+### 2.1 算法来源与核心思想
+
+**理论基础**：
+- **论文参考**: "Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments" (MADDPG原论文, 2017) 中作为主要baseline
+- **核心思想**: 每个agent独立运行自己的DDPG算法，将其他agent视为环境的一部分（Non-stationary Environment）
+
+**与MADDPG的本质区别**：
+```python
+# MADDPG: 中心化训练，Critic使用全局信息
+Q_i(s_global, a_1, a_2, ..., a_N)
+
+# IDDPG: 去中心化训练，Critic仅使用局部信息
+Q_i(s_local, a_i)
+```
+
+**算法特点**：
+- ✅ **完全去中心化训练**：无需中心化协调，真正的分布式执行
+- ✅ **扩展性好**：agent数量增加不影响单个agent的网络规模
+- ✅ **实现简单**：N个独立的DDPG agent
+- ❌ **Non-stationary环境问题**：其他agent策略更新导致环境不稳定
+- ❌ **收敛性较差**：缺乏全局信息，容易陷入次优均衡
+
+### 2.2 适配当前项目的设计方案
+
+#### 2.2.1 Critic网络输入设计
+
+**核心决策：弱去中心化（方案B）**
+
+根据项目的博弈场景特点（充电站可以观测竞争对手价格），采用弱去中心化方案：
+
+```python
+# IDDPG Critic输入组成
+critic_input = [
+    global_prices_{t-1},     # 上一轮所有充电站价格（可观测，32维）
+    own_flow_{t-1},          # 上一轮自身充电流量（局部信息，8维）
+    own_action_t             # 当前轮自身动作（局部决策，8维）
+]
+# 总维度：48维（相比MADDPG的96维减少一半）
+```
+
+**时间维度说明**：
+- `global_prices_{t-1}`: 环境观测中的`last_round_all_prices`，历史信息
+- `own_flow_{t-1}`: 环境观测中的`own_charging_flow`，历史信息
+- `own_action_t`: 当前决策的价格动作，评估对象
+
+**与MADDPG的关键区别**：
+
+| 信息类型 | MADDPG | IDDPG |
+|---------|--------|-------|
+| 全局价格历史 | ✅ (32维) | ✅ (32维) |
+| 所有agent充电流量 | ✅ (32维) | ❌ 仅自身 (8维) |
+| 所有agent当前动作 | ✅ (32维) | ❌ 仅自身 (8维) |
+| **总输入维度** | **96维** | **48维** |
+
+**选择弱去中心化的理由**：
+1. ✅ 符合现实场景：充电站可以观测竞争对手公开价格
+2. ✅ 与项目环境定义一致：`last_round_all_prices`已被提供
+3. ✅ 与MADDPG原论文中的IDDPG baseline实现方式一致
+4. ✅ 保持IDDPG的核心特征：**Critic不使用其他agent的动作和私有状态（流量）**
+
+#### 2.2.2 ReplayBuffer设计
+
+**核心决策：每个agent维护独立的ReplayBuffer**
+
+```python
+class IndependentDDPG:
+    def __init__(self, agent_ids, ...):
+        # 每个agent独立的ReplayBuffer
+        self.replay_buffers = {
+            agent_id: ReplayBuffer(capacity=10000)
+            for agent_id in agent_ids
+        }
+
+        # 每个agent独立的DDPG实例
+        self.ddpg_agents = {
+            agent_id: SingleDDPG(obs_dim, action_dim, local_state_dim, ...)
+            for agent_id in agent_ids
+        }
+```
+
+**存储内容对比**：
+
+| 维度 | MADDPG | IDDPG |
+|------|--------|-------|
+| Buffer数量 | 1个全局共享 | N个独立Buffer |
+| 存储结构 | `(obs_all, actions_all, rewards_all, next_obs_all, dones_all)` | `(obs_i, action_i, reward_i, next_obs_i, done_i)` |
+| 采样方式 | 全局统一采样 | 各agent独立采样 |
+| 信息隔离 | 所有agent信息集中 | 每个agent信息隔离 |
+
+**优势**：
+- ✅ 完全去中心化，无需agent间通信（训练时）
+- ✅ 符合IDDPG"独立学习"的理论定义
+- ✅ 便于并行训练（各agent可异步更新）
+
+#### 2.2.3 网络架构设计
+
+**Actor网络：与MADDPG完全相同**
+
+```python
+# IDDPG Actor（与MADDPG一致）
+class ActorNetwork:
+    def __init__(self, obs_dim, action_dim=8, hidden_sizes=(64, 64)):
+        # 输入：局部观测（process_observations处理后，40维）
+        # 输出：归一化价格 [0,1]^8
+```
+
+**Critic网络：输入维度不同，结构相同**
+
+```python
+# MADDPG Critic
+CriticNetwork(input_dim=96, hidden_sizes=(128, 64))
+
+# IDDPG Critic
+CriticNetwork(input_dim=48, hidden_sizes=(128, 64))  # 输入维度减半，隐藏层保持一致
+```
+
+**设计原则**：
+- ✅ Actor网络完全相同，确保动作生成机制一致
+- ✅ Critic隐藏层结构保持一致，确保网络容量公平
+- ✅ 仅Critic输入维度不同，体现算法核心差异
+
+#### 2.2.4 训练更新逻辑
+
+**IDDPG的独立更新流程**：
+
+```python
+def learn(self):
+    """完全去中心化的学习更新"""
+    # 每个agent独立从自己的Buffer采样和更新
+    for agent_id in self.agent_ids:
+        # 1. 检查是否有足够经验
+        if len(self.replay_buffers[agent_id]) < min_buffer_size:
+            continue
+
+        # 2. 从该agent的独立Buffer采样
+        batch = self.replay_buffers[agent_id].sample(batch_size)
+
+        # 3. 更新该agent的Critic（使用局部信息）
+        self._update_critic(agent_id, batch)
+
+        # 4. 更新该agent的Actor（使用局部Critic）
+        self._update_actor(agent_id, batch)
+
+        # 5. 软更新该agent的目标网络
+        self.ddpg_agents[agent_id].soft_update(tau)
+```
+
+**目标Q值计算的关键区别**：
+
+```python
+# MADDPG: 使用所有agent的目标Actor生成next_actions
+def _compute_target_q_maddpg(batch_next_obs):
+    next_actions = {}
+    for aid in all_agents:
+        next_actions[aid] = agents[aid].actor_target(batch_next_obs[aid])
+    global_next_state = organize_global_state(batch_next_obs, next_actions)
+    target_q = critic_target(global_next_state)
+
+# IDDPG: 仅使用自己的目标Actor
+def _compute_target_q_iddpg(agent_id, batch_next_obs):
+    next_action = agents[agent_id].actor_target(batch_next_obs)
+    local_next_state = organize_local_state(batch_next_obs, next_action)
+    target_q = critic_target(local_next_state)
+```
+
+**核心差异总结**：
+
+| 维度 | MADDPG | IDDPG |
+|------|--------|-------|
+| 采样来源 | 全局Buffer（所有agent共享） | 独立Buffer（各agent隔离） |
+| Critic输入 | 全局状态+所有agent动作 | 局部状态+自身动作 |
+| 目标Q计算 | 需要所有agent的actor_target | 仅需自己的actor_target |
+| Actor梯度来源 | 全局Critic（知道其他agent动作） | 局部Critic（不知道其他agent动作） |
+| 更新耦合 | ✅ 耦合（需协调） | ❌ 完全独立 |
+
+#### 2.2.5 辅助函数设计
+
+**`organize_local_state` 函数**（IDDPG专用）：
+
+```python
+def organize_local_state(observation, own_action):
+    """
+    组织单个agent的局部状态信息（对应MADDPG的organize_global_state）
+
+    Args:
+        observation (dict): 单个agent的观测
+            - "last_round_all_prices": np.ndarray (n_agents, n_periods)
+            - "own_charging_flow": np.ndarray (n_periods,)
+        own_action (np.ndarray): 单个agent的动作 (n_periods,)
+
+    Returns:
+        np.ndarray: 局部状态向量，形状 (48,)
+    """
+    # 1. 全局价格历史（可观测信息）
+    global_prices = observation["last_round_all_prices"].flatten()  # 32维
+
+    # 2. 自身充电流量（局部信息）
+    own_flow = observation["own_charging_flow"].flatten()           # 8维
+
+    # 3. 自身当前动作（评估对象）
+    own_action_flat = own_action.flatten()                          # 8维
+
+    return np.concatenate([global_prices, own_flow, own_action_flat])  # 48维
+```
+
+**`process_observations` 函数**：与MADDPG完全相同（复用逻辑）
+
+```python
+def process_observations(observation):
+    """
+    处理单个agent观测数据为Actor网络输入（与MADDPG相同）
+
+    Returns:
+        np.ndarray: 展平的观测向量，形状 (40,)
+    """
+    last_prices = observation["last_round_all_prices"].flatten()  # 32维
+    own_flow = observation["own_charging_flow"].flatten()         # 8维
+    return np.concatenate([last_prices, own_flow])                # 40维
+```
+
+### 2.3 超参数配置对齐
+
+**关键原则**：除了网络输入维度，所有超参数与MADDPG完全一致
+
+```python
+IDDPG_CONFIG = {
+    # 网络结构
+    'actor_hidden_sizes': (64, 64),      # 与MADDPG一致
+    'critic_hidden_sizes': (128, 64),    # 与MADDPG一致（仅输入维度不同）
+
+    # 学习率
+    'actor_lr': 0.001,                   # 与MADDPG一致
+    'critic_lr': 0.001,                  # 与MADDPG一致
+
+    # 训练参数
+    'gamma': 0.95,                       # 与MADDPG一致
+    'tau': 0.01,                         # 与MADDPG一致
+    'buffer_capacity': 10000,            # 与MADDPG一致（但每个agent独立）
+    'batch_size': 64,                    # 与MADDPG一致（动态调整策略相同）
+
+    # 探索策略
+    'noise_sigma': 0.2,                  # 与MADDPG一致
+    'noise_decay': 0.9995,               # 与MADDPG一致
+    'noise_min_sigma': 0.01,             # 与MADDPG一致
+
+    # 奖励归一化
+    'reward_normalization': 'max_affine' # 与MADDPG一致（博弈特定归一化）
+}
+```
+
+**对齐理由**：
+- ✅ 确保公平对比：排除超参数差异的影响
+- ✅ 隔离算法差异：对比结果仅反映架构差异（中心化 vs 去中心化）
+- ✅ 简化实验设计：无需为IDDPG单独调参
+
+### 2.4 收敛判别与评估
+
+#### 2.4.1 收敛标准（与MADDPG完全一致）
+
+```python
+CONVERGENCE_CONFIG = {
+    'convergence_threshold': 0.01,       # 1%平均相对变化
+    'stable_steps_required': 5,          # 单episode内连续收敛步数
+    'stable_episodes_required': 3,       # 训练终止的连续收敛episodes
+}
+```
+
+#### 2.4.2 对比评估指标
+
+**1. 收敛速度**：
+- 横轴：累积环境评估次数（与BR-PSO对比方式一致）
+- 纵轴：策略变化率（对数坐标）
+- 预期：IDDPG可能比MADDPG收敛更慢或更不稳定
+
+**2. 均衡质量**：
+- 最终纳什均衡的价格策略
+- 系统总收益（社会福利）
+- 各充电站收益分配
+- Nash间隙（与真实纳什均衡的距离）
+
+**3. 训练稳定性**：
+- Episode长度分布
+- 收益曲线波动性（标准差）
+- 是否能稳定收敛到均衡
+
+**4. 计算效率**：
+- 单次update平均耗时（IDDPG应该更快）
+- 内存占用（IDDPG网络更小）
+- 达到收敛所需的总时间
+
+### 2.5 预期实验结果
+
+**理论预期**：
+
+1. **收敛性**：
+   - ✅ IDDPG应该能收敛到某个纳什均衡（静态博弈环境相对简单）
+   - ⚠️ 收敛速度可能比MADDPG慢（缺乏全局信息，需要更多探索）
+   - ⚠️ 可能陷入次优均衡（特别是存在多个纳什均衡时）
+
+2. **均衡质量**：
+   - ⚠️ 找到的均衡解可能劣于MADDPG（系统总收益更低）
+   - ⚠️ 可能收敛到不同的均衡点（如果有多个均衡）
+
+3. **计算效率**：
+   - ✅ 单次更新速度更快（网络更小，48维 vs 96维）
+   - ⚠️ 但可能需要更多steps才能收敛
+   - ✅ 内存占用更少（独立Buffer但信息更简单）
+
+4. **训练稳定性**：
+   - ⚠️ 可能出现振荡（Non-stationary环境问题）
+   - ⚠️ 收益曲线波动可能更大
+
+**文献支持**：
+- MADDPG原论文在合作-竞争混合环境中，IDDPG表现明显弱于MADDPG
+- 但在纯竞争博弈环境中，IDDPG的性能下降可能不会太严重
+- 本项目的价格博弈属于纯竞争场景，IDDPG可能有一定表现
+
+### 2.6 实现架构设计
+
+#### 2.6.1 文件结构（完全独立实现）
+
+**核心原则**：保持算法模块的完全独立性，即使存在代码重复
+
+```
+src/algorithms/
+├── maddpg/                        # 现有MADDPG实现
+│   ├── maddpg.py                 # ReplayBuffer, GaussianNoise, DDPG, MADDPG
+│   └── networks.py               # ActorNetwork, CriticNetwork
+└── iddpg/                         # 新增IDDPG实现（完全独立）
+    ├── iddpg.py                   # ReplayBuffer, GaussianNoise, SingleDDPG, IndependentDDPG
+    │                              # （完整复制工具类，确保模块独立）
+    └── networks.py                # ActorNetwork, CriticNetwork
+                                   # （复制一份，确保算法自包含）
+```
+
+**代码复用说明**：
+- ❌ **不从maddpg导入任何代码**：确保算法模块完全独立
+- ✅ **完整复制必要的类**：ReplayBuffer, GaussianNoise, ActorNetwork, CriticNetwork
+- ✅ **新实现IDDPG专属逻辑**：SingleDDPG, IndependentDDPG, organize_local_state
+
+**优势**：
+- ✅ 每个算法完全独立，修改不影响其他算法
+- ✅ 代码自包含，易于理解和维护
+- ✅ 便于独立测试和调试
+
+**代价**：
+- ⚠️ 代码冗余（工具类代码重复）
+- ⚠️ 多处维护（修改bug需要同步多个文件）
+
+#### 2.6.2 训练器设计
+
+**独立实现 `IDDPGTrainer`**（参考MADDPGTrainer架构）：
+
+```
+src/trainer/
+├── MADDPGTrainer.py              # 现有MADDPG训练器
+└── IDDPGTrainer.py               # 新增IDDPG训练器（独立实现）
+```
+
+**保持三层训练架构**：
+- **Episode层**：博弈求解尝试（与MADDPG一致）
+- **Step层**：策略调整循环（与MADDPG一致）
+- **UE-DTA层**：环境响应（与MADDPG一致）
+
+**复用逻辑**：
+- 收敛检测机制（策略相对变化率）
+- 进度监控显示（三层进度条）
+- 实验数据记录（JSON格式）
+
+### 2.7 实现优先级与计划
+
+**阶段1：核心算法实现**
+1. 创建 `src/algorithms/iddpg/` 目录
+2. 复制并实现 `iddpg.py`:
+   - 复制 ReplayBuffer, GaussianNoise 类
+   - 实现 SingleDDPG 类（单agent的DDPG）
+   - 实现 IndependentDDPG 类（管理N个SingleDDPG）
+   - 实现 organize_local_state, process_observations 函数
+3. 复制 `networks.py`（ActorNetwork, CriticNetwork）
+
+**阶段2：训练器实现**
+1. 创建 `src/trainer/IDDPGTrainer.py`
+2. 参考 MADDPGTrainer 实现训练循环
+3. 保持三层架构和收敛检测逻辑
+
+**阶段3：对比实验**
+1. 相同配置下训练 MADDPG 和 IDDPG
+2. 记录收敛曲线数据
+3. 对比最终均衡解质量
+4. 分析计算效率差异
+
+**阶段4：结果分析**
+1. 绘制收敛曲线对比图
+2. 分析均衡解的差异原因
+3. 讨论IDDPG的适用性和局限性
+
+### 2.8 关键技术要点
+
+#### 2.8.1 SingleDDPG vs MADDPG中的DDPG
+
+**区别**：
+- MADDPG中的DDPG：Critic接收全局状态（96维）
+- IDDPG中的SingleDDPG：Critic接收局部状态（48维）
+
+**实现注意**：
+- SingleDDPG的Critic网络初始化时，`global_obs_dim` 参数应设为48
+- 目标Q值计算时，仅使用自己的next_action，不访问其他agent信息
+
+#### 2.8.2 经验存储与采样
+
+```python
+# IDDPG存储经验时
+def store_experience(self, observations, actions, rewards, next_observations, dones):
+    # 归一化奖励（与MADDPG一致）
+    normalized_rewards = normalize_rewards(rewards)
+
+    # 为每个agent独立存储
+    for agent_id in self.agent_ids:
+        local_experience = (
+            observations[agent_id],
+            actions[agent_id],
+            normalized_rewards[agent_id],
+            next_observations[agent_id],
+            dones[agent_id]
+        )
+        self.replay_buffers[agent_id].add(local_experience)
+```
+
+#### 2.8.3 动态批次大小调整
+
+**与MADDPG一致的动态调整策略**：
+
+```python
+def _get_dynamic_batch_size(self, agent_id):
+    """各agent独立调整批次大小"""
+    buffer_size = len(self.replay_buffers[agent_id])
+    max_batch_size = self.batch_size
+
+    if buffer_size < max_batch_size // 2:
+        return min(max_batch_size // 4, buffer_size)
+    elif buffer_size < max_batch_size:
+        return min(max_batch_size // 2, buffer_size)
+    else:
+        return min(max_batch_size, buffer_size)
+```
+
+### 2.9 与其他对比算法的关系
+
+| 算法 | 类型 | 计算成本 | 理论收敛性 | 实现复杂度 |
+|------|------|---------|-----------|-----------|
+| MADDPG | MADRL | 中等 | 好（中心化训练） | 中等 |
+| **IDDPG** | MADRL | 中等 | 较差（Non-stationary） | 简单 |
+| BR-PSO | 经典博弈论 | 高 | 好（理论保证） | 中等 |
+
+**对比意义**：
+- IDDPG vs MADDPG：量化中心化训练的价值
+- IDDPG vs BR-PSO：对比MADRL与经典方法的差异
