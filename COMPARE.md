@@ -1045,3 +1045,296 @@ def _get_dynamic_batch_size(self, agent_id):
 **对比意义**：
 - IDDPG vs MADDPG：量化中心化训练的价值
 - IDDPG vs BR-PSO：对比MADRL与经典方法的差异
+
+---
+
+## 3. Mean Field Deep Deterministic Policy Gradient (MF-DDPG)
+
+### 3.1 算法来源与核心思想
+
+**理论基础**：
+- **论文参考**: "Multi-Agent Deep Reinforcement Learning Method for EV Charging Station Game" (IEEE TPWRS, 2022)
+- **核心思想**: 通过Mean Field近似将其他agent的集体行为压缩为低维度信息，实现纯粹的独立训练范式
+
+**算法特点**：
+- ✅ **完全独立训练**：每个agent独立学习，无中心化协调
+- ✅ **Mean Field近似**：用平均场信息近似其他agent行为
+- ✅ **最佳扩展性**：不受agent数量影响，O(1)复杂度
+- ✅ **理论简洁**：符合去中心化学习的纯粹性
+- ⚠️ **信息压缩损失**：可能丢失重要的个体差异信息
+
+### 3.2 训练范式的理论定位
+
+**核心决策：纯粹独立训练范式**
+
+与其他算法的训练范式对比：
+
+| 算法 | 训练范式 | Critic信息获取 | 理论特征 |
+|------|---------|---------------|----------|
+| **MADDPG** | 中心化训练，去中心化执行 (CTDE) | 全局完整信息 | 训练效率高，执行独立 |
+| **IDDPG** | 完全独立训练 | 局部+历史价格信息 | 完全去中心化，信息有限 |
+| **MF-DDPG** | 独立训练 + Mean Field近似 | 局部+Mean Field信息 | 信息压缩的独立学习 |
+
+**选择纯粹独立训练的理由**：
+1. ✅ 符合Mean Field理论的精神：通过统计平均近似群体行为
+2. ✅ 保持训练范式的一致性：训练和执行都基于相同信息
+3. ✅ 验证信息压缩技术：评估Mean Field近似在小规模场景的效果
+4. ✅ 形成完整对比序列：CTDE ↔ 纯独立 ↔ Mean Field独立
+
+### 3.3 状态空间设计
+
+#### 3.3.1 核心设计决策：基于Mean Field的状态压缩
+
+**设计哲学**：每个agent仅基于自身历史和其他agent的平均场信息进行决策，不使用任何"特权"信息。
+
+#### 3.3.2 Actor网络状态设计（24维）
+
+```python
+# MF-DDPG Actor状态组成
+actor_state = [
+    own_last_prices,      # 8维：自身上轮价格（决策历史）
+    own_last_flow,        # 8维：自身上轮充电流量（市场反馈）
+    mean_field_prices     # 8维：其他agent价格的平均值（竞争环境）
+]
+# 总维度：24维
+```
+
+**状态计算逻辑**：
+```python
+def compute_mf_actor_state(agent_id, observation):
+    # 1. 提取自身历史信息
+    own_last_prices = observation["last_round_all_prices"][agent_id]  # 8维
+    own_last_flow = observation["own_charging_flow"]                  # 8维
+
+    # 2. 计算Mean Field状态
+    other_agent_prices = []
+    for aid in all_agents:
+        if aid != agent_id:
+            other_agent_prices.append(observation["last_round_all_prices"][aid])
+
+    mean_field_prices = np.mean(other_agent_prices, axis=0)  # 8维
+
+    # 3. 组合状态
+    return np.concatenate([own_last_prices, own_last_flow, mean_field_prices])
+```
+
+#### 3.3.3 Critic网络状态设计（32维）
+
+```python
+# MF-DDPG Critic状态组成
+critic_state = [
+    actor_state,          # 24维：Actor状态（如上所述）
+    current_action        # 8维：当前轮价格决策
+]
+# 总维度：32维
+```
+
+#### 3.3.4 与其他算法的状态维度对比
+
+| 网络类型 | MADDPG | IDDPG | MF-DDPG | 信息特征 |
+|----------|--------|-------|---------|----------|
+| **Actor输入** | 40维 | 40维 | 24维 | MF最小，信息最压缩 |
+| **Critic输入** | 96维 | 48维 | 32维 | MF最小，计算最高效 |
+| **信息获取** | 全局完整 | 历史价格 | Mean Field近似 | MF平衡信息与效率 |
+
+### 3.4 网络架构设计
+
+#### 3.4.1 超参数对齐原则
+
+**核心原则**：除输入维度外，所有超参数与MADDPG保持完全一致，确保对比公平性。
+
+```python
+MF_DDPG_CONFIG = {
+    # 与MADDPG对齐的基础参数
+    'actor_lr': 0.001,                   # 学习率对齐
+    'critic_lr': 0.001,
+    'gamma': 0.95,                       # 折扣因子对齐
+    'tau': 0.01,                         # 软更新系数对齐
+    'buffer_capacity': 10000,            # 缓冲区容量对齐
+    'batch_size': 64,                    # 批次大小对齐
+
+    # 探索策略参数对齐
+    'noise_sigma': 0.2,
+    'noise_decay': 0.9995,
+    'noise_min_sigma': 0.01,
+
+    # 网络结构（保持隐藏层一致）
+    'actor_hidden_sizes': (64, 64),      # 与MADDPG一致
+    'critic_hidden_sizes': (128, 64),    # 与MADDPG一致
+
+    # 收敛标准对齐
+    'convergence_threshold': 0.01,
+    'stable_steps_required': 5,
+    'stable_episodes_required': 3,
+
+    # 奖励归一化
+    'reward_normalization': 'max_affine'  # 博弈特定归一化一致
+}
+```
+
+#### 3.4.2 网络架构具体设计
+
+**Actor网络**：
+- 输入维度：24维（自身历史 + Mean Field）
+- 隐藏层：(64, 64)，与MADDPG保持一致
+- 输出维度：8维，Sigmoid激活输出[0,1]归一化价格
+- 激活函数：隐藏层ReLU，输出层Sigmoid
+
+**Critic网络**：
+- 输入维度：32维（24维状态 + 8维动作）
+- 隐藏层：(128, 64)，与MADDPG保持一致
+- 输出维度：1维Q值
+- 激活函数：隐藏层ReLU，输出层无激活
+
+### 3.5 训练机制设计
+
+#### 3.5.1 独立经验回放策略
+
+**核心决策**：每个agent维护独立的ReplayBuffer，完全符合独立训练范式。
+
+```python
+# 经验存储结构
+experience = (
+    local_state,           # 24维：MF-DDPG状态
+    action,               # 8维：价格动作
+    reward,               # 1维：归一化奖励
+    next_local_state,     # 24维：下一状态
+    done                  # 1维：结束标志
+)
+```
+
+#### 3.5.2 目标Q值计算机制
+
+**采用简化方案**：使用存储经验时的Mean Field状态，不重新计算target Mean Field。
+
+**理由分析**：
+1. ✅ **保持独立性**：避免需要其他agent的target policy信息
+2. ✅ **实现简洁**：与论文实践保持一致
+3. ✅ **理论合理**：Mean Field本身就是近似方法
+4. ✅ **计算高效**：避免复杂的target状态重计算
+
+#### 3.5.3 Mean Field更新频率
+
+**设计决策**：每个step都重新计算Mean Field状态，与论文保持一致。
+
+**更新机制**：
+- 环境step完成后，立即基于新观测重新计算Mean Field
+- 不使用缓存或滞后的Mean Field信息
+- 确保Mean Field信息的实时性和准确性
+
+### 3.6 收敛检测与评估
+
+#### 3.6.1 收敛标准（完全对齐）
+
+与MADDPG和IDDPG使用相同的收敛检测机制：
+- 价格相对变化率阈值：1%
+- 单episode内连续收敛步数：5步
+- 训练终止连续收敛episodes：3轮
+
+#### 3.6.2 对比评估指标
+
+**主要评估维度**：
+1. **收敛效率**：环境评估次数 vs 策略变化率
+2. **均衡质量**：最终纳什均衡的价格策略和收益分配
+3. **计算性能**：训练时间、内存占用、网络参数量
+4. **算法稳定性**：收敛一致性、收益波动性
+
+### 3.7 与现有环境的集成
+
+#### 3.7.1 环境接口兼容性
+
+**完全兼容现有环境**：
+- ✅ 直接使用EVCSChargingGameEnv
+- ✅ 复用现有观测空间结构
+- ✅ 使用相同的动作空间定义
+- ✅ 复用博弈特定奖励归一化
+
+#### 3.7.2 训练框架复用
+
+**采用三层训练架构**：
+- **Episode层**：博弈求解尝试（与MADDPG一致）
+- **Step层**：策略调整循环（与MADDPG一致）
+- **UE-DTA层**：环境响应（与MADDPG一致）
+
+### 3.8 实现架构设计
+
+#### 3.8.1 文件结构（完全独立实现）
+
+```
+src/algorithms/mfddpg/
+├── mfddpg.py      # MFDDPGAgent, MFDDPG类，独立实现
+└── networks.py    # ActorNetwork, CriticNetwork类，复制实现
+
+src/trainer/
+└── MFDDPGTrainer.py  # 独立训练器，参考MADDPGTrainer架构
+```
+
+**实现原则**：
+- ❌ 不从其他算法模块导入代码
+- ✅ 完整复制必要的工具类（ReplayBuffer, GaussianNoise等）
+- ✅ 实现MF-DDPG专属逻辑（Mean Field状态计算）
+- ✅ 保持算法模块的完全独立性
+
+#### 3.8.2 关键函数设计
+
+**Mean Field状态计算函数**：
+```python
+def compute_mean_field_state(agent_id, observations):
+    """计算单个agent的Mean Field状态"""
+
+def process_mf_observations(agent_id, observation):
+    """处理MF-DDPG的观测数据为网络输入"""
+
+def organize_mf_critic_state(actor_state, action):
+    """组织MF-DDPG的Critic网络输入"""
+```
+
+### 3.9 预期实验效果分析
+
+#### 3.9.1 理论预期
+
+**计算效率优势**：
+- ✅ 最小的网络规模：参数量约为MADDPG的1/3
+- ✅ 最高的训练速度：网络计算开销最小
+- ✅ 最佳的扩展性：不受agent数量影响
+
+**收敛性能预期**：
+- ⚠️ 可能比MADDPG收敛稍慢：信息压缩导致的学习效率损失
+- ⚠️ 在小规模场景优势不明显：Mean Field近似的理论优势需要大规模验证
+- ⚠️ 可能找到不同的均衡解：信息压缩可能影响解的质量
+
+#### 3.9.2 对比实验意义
+
+**算法谱系验证**：
+```
+MADDPG (全局信息) ↔ IDDPG (历史信息) ↔ MF-DDPG (压缩信息) ↔ BR-PSO (数学优化)
+```
+
+**验证关键问题**：
+1. 中心化训练的价值量化（MADDPG vs 其他）
+2. 信息压缩技术的效果（MF-DDPG vs IDDPG）
+3. 网络规模对求解效率的影响
+4. 不同训练范式在小规模博弈中的适用性
+
+### 3.10 实现优先级与计划
+
+**实现阶段**：
+1. **阶段1**：核心算法实现（MF状态计算、网络架构、训练逻辑）
+2. **阶段2**：训练器实现（参考MADDPGTrainer，保持三层架构）
+3. **阶段3**：对比实验（与MADDPG、IDDPG、BR-PSO全面对比）
+4. **阶段4**：结果分析（收敛曲线、均衡质量、计算效率分析）
+
+### 3.11 与其他对比算法的关系
+
+| 算法 | 类型 | 信息维度 | 计算成本 | 理论收敛性 | 实现复杂度 |
+|------|------|---------|---------|-----------|-----------|
+| MADDPG | MADRL-CTDE | 高 (96维) | 中等 | 好 | 中等 |
+| IDDPG | MADRL-独立 | 中 (48维) | 中等 | 较差 | 简单 |
+| **MF-DDPG** | MADRL-MF | 低 (32维) | 最低 | 中等 | 简单 |
+| BR-PSO | 经典博弈论 | - | 最高 | 好 | 中等 |
+
+**对比意义**：
+- MF-DDPG vs MADDPG：验证信息压缩对性能的影响
+- MF-DDPG vs IDDPG：对比不同信息利用策略的效果
+- MF-DDPG vs BR-PSO：评估MADRL与经典方法的效率差异
+- 四算法综合对比：构建从高信息到低计算成本的完整算法谱系
