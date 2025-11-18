@@ -121,7 +121,7 @@ class DDPG:
 
     深度确定性策略梯度算法的单智能体版本，包含Actor-Critic架构。
     每个DDPG智能体独立维护自己的网络、优化器和经验回放。
-    关键区别：Critic使用局部状态（48维）而非全局状态（96维）。
+    关键区别：Critic使用局部状态而非全局状态，维度由local_state_dim参数指定。
     """
 
     def __init__(self, agent_id, obs_dim, action_dim, local_state_dim,
