@@ -114,5 +114,97 @@ def organize_mf_critic_state(actor_state: np.ndarray, action: np.ndarray) -> np.
 
 
 # ============================================================================
-# 后续将添加：ReplayBuffer, GaussianNoise, MFDDPGAgent, MFDDPG类
+# 工具类：经验回放和探索策略
+# ============================================================================
+
+class ReplayBuffer:
+    """
+    经验回放缓冲区
+
+    用于存储智能体的经验轨迹，支持随机采样以打破数据相关性。
+    使用循环缓冲区，当容量满时自动覆盖最旧的经验。
+    与MADDPG/IDDPG完全相同，确保公平对比。
+    """
+
+    def __init__(self, capacity):
+        """
+        初始化经验回放缓冲区
+
+        Args:
+            capacity (int): 缓冲区最大容量
+        """
+        self.buffer = deque(maxlen=capacity)
+
+    def add(self, experience):
+        """
+        添加经验元组到缓冲区
+
+        Args:
+            experience (tuple): 经验元组 (mf_state, action, reward, next_mf_state, done)
+        """
+        self.buffer.append(experience)
+
+    def sample(self, batch_size):
+        """
+        随机采样批次经验
+
+        Args:
+            batch_size (int): 采样批次大小
+
+        Returns:
+            list: 采样得到的经验列表
+
+        Raises:
+            ValueError: 当缓冲区大小小于批次大小时
+        """
+        if len(self.buffer) < batch_size:
+            raise ValueError(f"缓冲区大小{len(self.buffer)} < 批次大小{batch_size}")
+        return random.sample(self.buffer, batch_size)
+
+    def __len__(self):
+        """返回当前缓冲区大小"""
+        return len(self.buffer)
+
+
+class GaussianNoise:
+    """
+    高斯噪音探索策略
+
+    为动作添加高斯噪音以促进探索，噪音强度随时间指数衰减。
+    适用于连续动作空间的探索。
+    与MADDPG/IDDPG完全相同，确保公平对比。
+    """
+
+    def __init__(self, action_dim, sigma, sigma_decay, min_sigma):
+        """
+        初始化高斯噪音
+
+        Args:
+            action_dim (int): 动作维度
+            sigma (float): 初始噪音标准差
+            sigma_decay (float): 噪音衰减率，每次调用后sigma *= sigma_decay
+            min_sigma (float): 噪音的最小标准差，防止探索完全停止
+        """
+        self.action_dim = action_dim
+        self.sigma = sigma
+        self.sigma_decay = sigma_decay
+        self.min_sigma = min_sigma
+
+    def __call__(self, action):
+        """
+        为动作添加高斯噪音
+
+        Args:
+            action (np.ndarray): 原始动作，形状为 (action_dim,)
+
+        Returns:
+            np.ndarray: 添加噪音后的动作，裁剪到[0,1]范围
+        """
+        noise = np.random.normal(0, self.sigma, self.action_dim)
+        self.sigma = max(self.min_sigma, self.sigma * self.sigma_decay)
+        return np.clip(action + noise, 0.0, 1.0)
+
+
+# ============================================================================
+# MFDDPGAgent：单智能体MF-DDPG实现
 # ============================================================================
