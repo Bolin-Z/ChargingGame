@@ -44,8 +44,40 @@ class IDDPGConfig:
 
     与MADDPG对齐的超参数，确保公平对比：
     - 除了网络输入维度，所有参数与MADDPG完全一致
-    - Critic使用局部状态（48维）而非全局状态（96维）
+    - 使用局部状态而非全局状态
     - 每个agent维护独立的经验回放Buffer
+    """
+
+    # === 网络结构配置（与MADDPG对齐）===
+    actor_hidden_sizes: tuple = (64, 64)     # Actor网络隐藏层结构
+    critic_hidden_sizes: tuple = (128, 64)   # Critic网络隐藏层结构
+
+    # === 学习参数配置（与MADDPG对齐）===
+    actor_lr: float = 0.001      # Actor网络学习率
+    critic_lr: float = 0.001     # Critic网络学习率
+    gamma: float = 0.99          # 折扣因子
+    tau: float = 0.01            # 软更新系数
+
+    # === 经验回放配置（与MADDPG对齐）===
+    buffer_capacity: int = 10000 # 经验回放缓冲区容量（每个agent独立）
+    max_batch_size: int = 64     # 最大批次大小
+
+    # === 探索策略配置（与MADDPG对齐）===
+    noise_sigma: float = 0.1     # 高斯噪音初始标准差
+    noise_decay: float = 0.99    # 噪音衰减率
+    min_noise: float = 0.0005    # 最小噪音标准差
+
+
+@dataclass
+class MFDDPGConfig:
+    """
+    MF-DDPG算法配置
+
+    与MADDPG对齐的超参数，确保公平对比：
+    - 除了网络输入维度，所有参数与MADDPG完全一致
+    - 使用Mean Field状态压缩
+    - 每个agent维护独立的经验回放Buffer
+    - 独立训练 + Mean Field近似
     """
 
     # === 网络结构配置（与MADDPG对齐）===
@@ -122,3 +154,13 @@ def get_iddpg_config():
         IDDPGConfig: IDDPG算法配置
     """
     return IDDPGConfig()
+
+
+def get_mfddpg_config():
+    """
+    获取MF-DDPG算法配置
+
+    Returns:
+        MFDDPGConfig: MF-DDPG算法配置
+    """
+    return MFDDPGConfig()
