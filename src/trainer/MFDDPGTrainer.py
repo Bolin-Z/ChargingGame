@@ -78,14 +78,20 @@ class MFDDPGTrainer:
 
         # 2. 从环境获取维度信息
         obs_space = self.env.observation_space(self.env.agents[0])
-        obs_dim = sum(np.prod(space.shape) for space in obs_space.spaces.values())
         action_dim = self.env.action_space(self.env.agents[0]).shape[0]
+
+        # MF-DDPG使用Mean Field状态，维度为 3 * n_periods
+        # 包含：own_last_prices + own_last_flow + mean_field_prices
+        n_periods = action_dim  # 价格决策的时段数
+        mf_state_dim = 3 * n_periods
+        critic_state_dim = mf_state_dim + action_dim
 
         # 3. 创建MF-DDPG算法
         self.mfddpg = MFDDPG(
             agent_ids=self.env.agents,
-            obs_dim=obs_dim,
+            mf_state_dim=mf_state_dim,
             action_dim=action_dim,
+            critic_state_dim=critic_state_dim,
             buffer_capacity=mfddpg_config.buffer_capacity,
             max_batch_size=mfddpg_config.max_batch_size,
             actor_lr=mfddpg_config.actor_lr,
