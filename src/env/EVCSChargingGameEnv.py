@@ -328,9 +328,9 @@ class EVCSChargingGameEnv(ParallelEnv):
             for r in csv.reader(f):
                 if r[3] != "length":  # 跳过表头
                     link_name, start_node, end_node = r[0], r[1], r[2]
-                    length = float(r[3])
-                    free_flow_speed = float(r[4])
-                    jam_density = float(r[5])
+                    length = float(r[3]) # m
+                    free_flow_speed = float(r[4]) # m/s
+                    jam_density = float(r[5]) # veh/m/LINK
                     merge_priority = float(r[6])
                     
                     self.W.addLink(
@@ -364,13 +364,13 @@ class EVCSChargingGameEnv(ParallelEnv):
                 if r[2] != "start_t":  # 跳过表头
                     origin, destination = r[0], r[1]
                     start_t, end_t = float(r[2]), float(r[3])
-                    volume = float(r[4])
+                    flow = float(r[4]) # veh/s
                     
                     try:
                         # 充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,
-                            volume * self.charging_car_rate,
+                            flow * self.charging_car_rate,
                             float(r[5]) * self.charging_car_rate,
                             attribute={"charging_car": True}
                         )
@@ -378,7 +378,7 @@ class EVCSChargingGameEnv(ParallelEnv):
                         # 非充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,
-                            volume * (1 - self.charging_car_rate),
+                            flow * (1 - self.charging_car_rate),
                             float(r[5]) * (1 - self.charging_car_rate),
                             attribute={"charging_car": False}
                         )
@@ -388,14 +388,14 @@ class EVCSChargingGameEnv(ParallelEnv):
                         # 充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,
-                            volume * self.charging_car_rate,
+                            flow * self.charging_car_rate,
                             attribute={"charging_car": True}
                         )
                         
                         # 非充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,
-                            volume * (1 - self.charging_car_rate),
+                            flow * (1 - self.charging_car_rate),
                             attribute={"charging_car": False}
                         )
 
