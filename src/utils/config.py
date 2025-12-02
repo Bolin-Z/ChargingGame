@@ -6,7 +6,7 @@
 2. TrainingConfig: 训练流程控制参数（包含网络路径信息）
 
 路径说明：
-- network_dir: 相对于项目根目录的路径（如 'siouxfalls'）
+- network_dir: 相对于项目根目录的路径（如 'data/siouxfalls'）
 - output_dir: 相对于项目根目录的路径（如 'results'）
 """
 
@@ -105,8 +105,8 @@ class TrainingConfig:
     """训练流程配置"""
 
     # === 网络数据配置 ===
-    network_dir: str = 'siouxfalls'      # 网络数据文件夹路径（相对于项目根目录）
-    network_name: str = 'siouxfalls'     # 网络名称（用于加载对应的文件）
+    network_dir: str = 'data/siouxfalls'      # 网络数据文件夹路径（相对于项目根目录）
+    network_name: str = 'siouxfalls'          # 网络名称（用于加载对应的文件）
 
     # === 训练控制配置 ===
     max_episodes: int = 10              # 最大episode数，每个episode尝试求解一次纳什均衡
