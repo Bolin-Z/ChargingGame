@@ -269,6 +269,8 @@ class EVCSChargingGameEnv(ParallelEnv):
             self.simulation_time = settings["simulation_time"]
             # Platoon 大小（veh代表车辆数）
             self.deltan = settings["deltan"]
+            # 需求放大系数（用于调节路网拥堵程度）
+            self.demand_multiplier = settings.get("demand_multiplier", 1.0)
             # 充电车辆比例
             self.charging_car_rate = settings["charging_car_rate"]
             # 充电链路长度(m)
@@ -358,31 +360,31 @@ class EVCSChargingGameEnv(ParallelEnv):
             logging.debug(f"创建充电链路: {charging_link_name} ({node}->{node})")
 
         # 加载交通需求
-        logging.debug(f"加载交通需求 {demand_path}...")
+        logging.debug(f"加载交通需求 {demand_path}... (demand_multiplier={self.demand_multiplier})")
         with open(demand_path, "r") as f:
             for r in csv.reader(f):
                 if r[2] != "start_t":  # 跳过表头
                     origin, destination = r[0], r[1]
                     start_t, end_t = float(r[2]), float(r[3])
-                    flow = float(r[4]) # veh/s
-                    
+                    flow = float(r[4]) * self.demand_multiplier  # 应用需求放大系数
+
                     try:
                         # 充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,
                             flow * self.charging_car_rate,
-                            float(r[5]) * self.charging_car_rate,
+                            float(r[5]) * self.demand_multiplier * self.charging_car_rate,
                             attribute={"charging_car": True}
                         )
-                        
+
                         # 非充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,
                             flow * (1 - self.charging_car_rate),
-                            float(r[5]) * (1 - self.charging_car_rate),
+                            float(r[5]) * self.demand_multiplier * (1 - self.charging_car_rate),
                             attribute={"charging_car": False}
                         )
-                        
+
                     except:
                         # 处理数据格式不一致的情况
                         # 充电车辆需求
@@ -391,7 +393,7 @@ class EVCSChargingGameEnv(ParallelEnv):
                             flow * self.charging_car_rate,
                             attribute={"charging_car": True}
                         )
-                        
+
                         # 非充电车辆需求
                         self.W.adddemand(
                             origin, destination, start_t, end_t,

@@ -417,6 +417,7 @@ class MADDPGConfig:
     "charging_nodes": {"5": [0.1, 1.0], "12": [0.1, 1.0], ...},  // 充电站及价格范围
     "charging_periods": 8,                    // 时段数量
     "charging_car_rate": 0.3,                // 充电车辆比例
+    "demand_multiplier": 1.0,                // 需求放大系数（调节路网拥堵程度）
     "routes_per_od": 5,                       // 每个OD对的路径数
     "charging_link_length": 3000,             // 充电链路长度(m)
     "charging_link_free_flow_speed": 10,      // 充电速度(m/s)
@@ -425,6 +426,8 @@ class MADDPGConfig:
     "deltan": 5                               // Vehicle批次大小
 }
 ```
+
+**demand_multiplier概念**：需求放大系数，用于调节路网的拥堵程度。不同数据集因路网结构和原始需求密度不同，需要不同的放大系数来产生合适的交通拥堵效果。例如：Sioux Falls 使用 1.0，Berlin Friedrichshain 使用 3.5。
 
 **deltan概念**：UXSim中的关键参数，定义每个Vehicle对象代表的实际车辆数量。影响仿真精度与计算效率的平衡。
 

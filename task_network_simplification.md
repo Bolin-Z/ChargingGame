@@ -55,3 +55,34 @@ python test_berlin_simplified.py
 demand_multiplier = 3.5
 W.adddemand(orig, dest, start_t, end_t, q * demand_multiplier)
 ```
+
+## 5. 进阶实验与数据集扩展规划
+
+### 5.1 Berlin Friedrichshain (BF) 优化策略
+
+**定位**: 真实场景模拟、数字孪生展示、微观博弈特征验证。
+
+**挑战**: BF 路网呈现微观“管状”车流特征（OD 稀疏），随机放置的充电站极易因不在特定通勤路径上而导致**零流量**，使智能体无法学习。
+
+**执行方案**:
+1.  **维持压力**: 严格锁定 `demand_multiplier = 3.5`。
+    *   *注*: 实测 4x 以上会导致网络完全死锁（Gridlock），无法进行有效的博弈仿真。
+2.  **智能选址 (Smart Placement)**: 
+    *   先运行一次无博弈的纯交通仿真。
+    *   统计全网 Link 的累计通行流量。
+    *   将充电站部署在**流量最大的 Top 20 链路**上（而非随机分布）。
+    *   *目的*: 确保博弈有“生源”，观察主干道拥堵时支路站点的定价引流策略。
+
+### 5.2 待引入数据集：Anaheim
+
+**定位**: **规模泛化验证**。作为 Sioux Falls (理论) 到 Berlin (真实) 之间的“中型进阶算例”。
+
+**特征**:
+*   **来源**: `bstabler/TransportationNetworks` (TNTP格式)
+*   **规模**: 416 节点 / 914 链路 / 38 交通小区 (Zones)。
+*   **优势**: 
+    *   结构比 SF 更真实，包含清晰的主干道层级。
+    *   需求基于区域对 (Zone-to-Zone)，比 BF 的点对点 (Point-to-Point) 需求分布更均匀，天然具备良好的连通性，无需过度依赖需求倍增。
+*   **任务**:
+    *   TNTP 格式清洗与转换 (坐标归一化、容量/需求单位换算)。
+    *   验证 MADDPG 在 400+ 节点规模下的收敛性。
