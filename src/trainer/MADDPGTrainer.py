@@ -23,48 +23,48 @@ sys.path.insert(0, project_root)
 
 from src.algorithms.maddpg.maddpg import MADDPG
 from src.env.EVCSChargingGameEnv import EVCSChargingGameEnv
-from src.utils.config import MADDPGConfig, TrainingConfig
+from src.utils.config import ExperimentTask
 
 
 class MADDPGTrainer:
     """
     MADDPG充电站价格博弈训练器
-    
+
     专注于纳什均衡求解，采用清晰的三层结构：
-    - Episode层：博弈求解尝试  
+    - Episode层：博弈求解尝试
     - Step层：智能体策略调整
     - UE-DTA层：交通仿真响应
     """
-    
-    def __init__(self, maddpg_config: MADDPGConfig, training_config: TrainingConfig):
+
+    def __init__(self, task: ExperimentTask):
         """
         初始化MADDPGTrainer
-        
+
         Args:
-            maddpg_config: MADDPG算法配置
-            training_config: 训练流程配置
+            task: 实验任务单元，包含场景档案、算法配置和随机种子
         """
-        self.config = training_config
-        self.maddpg_config = maddpg_config
-        
+        self.task = task
+        self.config = task.scenario
+        self.maddpg_config = task.algo_config
+
         # 处理设备配置
-        if training_config.device == 'auto':
+        if self.config.device == 'auto':
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         else:
-            self.device = training_config.device
-            
+            self.device = self.config.device
+
         print(f"使用设备: {self.device}")
         if self.device == 'cuda':
             print(f"GPU: {torch.cuda.get_device_name(0)}")
-        
+
         # 1. 创建环境
         self.env = EVCSChargingGameEnv(
-            network_dir=training_config.network_dir,
-            network_name=training_config.network_name,
-            random_seed=training_config.seed,
-            max_steps=training_config.max_steps_per_episode,
-            convergence_threshold=training_config.convergence_threshold,
-            stable_steps_required=training_config.stable_steps_required
+            network_dir=self.config.network_dir,
+            network_name=self.config.network_name,
+            random_seed=task.seed,
+            max_steps=self.config.max_steps_per_episode,
+            convergence_threshold=self.config.convergence_threshold,
+            stable_steps_required=self.config.stable_steps_required
         )
         
         # 2. 从环境获取维度信息
@@ -79,19 +79,19 @@ class MADDPGTrainer:
             obs_dim=obs_dim,
             action_dim=action_dim,
             global_obs_dim=global_obs_dim,
-            buffer_capacity=maddpg_config.buffer_capacity,
-            max_batch_size=maddpg_config.max_batch_size,
-            actor_lr=maddpg_config.actor_lr,
-            critic_lr=maddpg_config.critic_lr,
-            gamma=maddpg_config.gamma,
-            tau=maddpg_config.tau,
-            seed=training_config.seed,
+            buffer_capacity=self.maddpg_config.buffer_capacity,
+            max_batch_size=self.maddpg_config.max_batch_size,
+            actor_lr=self.maddpg_config.actor_lr,
+            critic_lr=self.maddpg_config.critic_lr,
+            gamma=self.maddpg_config.gamma,
+            tau=self.maddpg_config.tau,
+            seed=task.seed,
             device=self.device,
-            actor_hidden_sizes=maddpg_config.actor_hidden_sizes,
-            critic_hidden_sizes=maddpg_config.critic_hidden_sizes,
-            noise_sigma=maddpg_config.noise_sigma,
-            noise_decay=maddpg_config.noise_decay,
-            min_noise=maddpg_config.min_noise
+            actor_hidden_sizes=self.maddpg_config.actor_hidden_sizes,
+            critic_hidden_sizes=self.maddpg_config.critic_hidden_sizes,
+            noise_sigma=self.maddpg_config.noise_sigma,
+            noise_decay=self.maddpg_config.noise_decay,
+            min_noise=self.maddpg_config.min_noise
         )
         
         # 4. 训练状态跟踪
@@ -142,8 +142,8 @@ class MADDPGTrainer:
         # 生成训练结果
         results = self._generate_training_results()
         
-        # 自动保存训练数据（使用配置的输出目录）
-        experiment_dir = self.save_training_data(self.config.output_dir)
+        # 自动保存训练数据
+        experiment_dir = self.save_training_data()
         results['experiment_dir'] = experiment_dir
         
         return results
@@ -344,19 +344,15 @@ class MADDPGTrainer:
             'final_nash_equilibrium': self.get_nash_equilibrium()
         }
     
-    def save_training_data(self, output_dir: str = "results") -> str:
+    def save_training_data(self) -> str:
         """
         保存训练数据到JSON文件
-        
-        Args:
-            output_dir: 输出根目录
-            
+
         Returns:
             str: 保存的实验目录路径
         """
-        # 创建带时间戳的实验目录
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        experiment_dir = os.path.join(output_dir, f"experiment_{timestamp}")
+        # 使用 ExperimentTask 生成规范路径
+        experiment_dir = self.task.get_output_path()
         os.makedirs(experiment_dir, exist_ok=True)
         
         # 保存step_records到JSON文件

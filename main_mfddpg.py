@@ -15,7 +15,7 @@ import os
 project_root = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
-from src.utils.config import get_mfddpg_config, get_training_config
+from src.utils.config import MFDDPGConfig, PROFILE_SIOUXFALLS, ExperimentTask
 from src.trainer.MFDDPGTrainer import MFDDPGTrainer
 
 
@@ -78,20 +78,31 @@ def main():
 
         # 1. 加载配置
         print("⚙️  加载配置...")
-        mfddpg_config = get_mfddpg_config()
-        training_config = get_training_config()
+        scenario = PROFILE_SIOUXFALLS
+        algo_config = MFDDPGConfig()
+        seed = 42
 
-        print(f"   训练配置: 最大{training_config.max_episodes}个Episodes, "
-              f"收敛阈值{training_config.convergence_threshold}, "
-              f"随机种子{training_config.seed}")
-        print(f"   算法配置: Actor-LR={mfddpg_config.actor_lr}, "
-              f"Critic-LR={mfddpg_config.critic_lr}, "
-              f"噪音强度={mfddpg_config.noise_sigma}")
+        # 创建实验任务
+        task = ExperimentTask(
+            name="MFDDPG_SiouxFalls",
+            scenario=scenario,
+            algo_name="MFDDPG",
+            algo_config=algo_config,
+            seed=seed
+        )
+
+        print(f"   场景配置: {scenario.network_name}, "
+              f"最大{scenario.max_episodes}个Episodes, "
+              f"收敛阈值{scenario.convergence_threshold}")
+        print(f"   算法配置: Actor-LR={algo_config.actor_lr}, "
+              f"Critic-LR={algo_config.critic_lr}, "
+              f"噪音强度={algo_config.noise_sigma}")
+        print(f"   随机种子: {seed}")
         print(f"   MF-DDPG特点: 独立训练 + Mean Field状态压缩")
 
         # 2. 创建训练器
         print("🏗️  初始化训练器...")
-        trainer = MFDDPGTrainer(mfddpg_config, training_config)
+        trainer = MFDDPGTrainer(task)
 
         # 3. 执行训练
         print("🎯 开始寻找纳什均衡...")

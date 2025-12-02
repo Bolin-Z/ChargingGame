@@ -1,9 +1,10 @@
 """
-简化配置管理系统
+配置管理系统
 
-两层配置架构：
-1. MADDPGConfig: MADDPG算法超参数
-2. TrainingConfig: 训练流程控制参数（包含网络路径信息）
+三层配置架构：
+1. 算法配置 (MADDPGConfig/IDDPGConfig/MFDDPGConfig): 算法超参数
+2. ScenarioProfile (场景档案): 数据路径 + 训练规则，确保同场景下不同算法对比公平
+3. ExperimentTask (实验任务单元): 场景档案 + 算法 + 种子，代表一次具体运行
 
 路径说明：
 - network_dir: 相对于项目根目录的路径（如 'data/siouxfalls'）
@@ -11,6 +12,9 @@
 """
 
 from dataclasses import dataclass
+from typing import Union
+from datetime import datetime
+import os
 
 
 @dataclass
@@ -101,66 +105,93 @@ class MFDDPGConfig:
 
 
 @dataclass
-class TrainingConfig:
-    """训练流程配置"""
+class ScenarioProfile:
+    """
+    场景档案 (Scenario Profile)
+
+    绑定数据来源和训练规则，确保同一场景下不同算法使用统一标准进行对比。
+    不同规模的网络需要不同的收敛阈值和训练步数。
+
+    推荐使用预定义的场景档案：PROFILE_SIOUXFALLS, PROFILE_BERLIN
+    """
 
     # === 网络数据配置 ===
-    network_dir: str = 'data/siouxfalls'      # 网络数据文件夹路径（相对于项目根目录）
-    network_name: str = 'siouxfalls'          # 网络名称（用于加载对应的文件）
+    network_dir: str                     # 网络数据文件夹路径（相对于项目根目录）
+    network_name: str                    # 网络名称（用于加载对应的文件）
 
     # === 训练控制配置 ===
-    max_episodes: int = 10              # 最大episode数，每个episode尝试求解一次纳什均衡
-    max_steps_per_episode: int = 1000     # 每个episode最大步数，防止无限循环
+    max_episodes: int                    # 最大episode数，每个episode尝试求解一次纳什均衡
+    max_steps_per_episode: int           # 每个episode最大步数，防止无限循环
 
     # === 收敛控制配置 ===
-    convergence_threshold: float = 0.01  # 纳什均衡价格收敛阈值，价格变化小于此值认为收敛
-    stable_steps_required: int = 5       # 稳定收敛所需的连续步数，连续这么多步都小于阈值才认为收敛
-    stable_episodes_required: int = 3    # 训练提前终止所需的连续收敛episodes数，连续这么多episode收敛即可停止训练
+    convergence_threshold: float         # 纳什均衡价格收敛阈值，价格变化小于此值认为收敛
+    stable_steps_required: int           # 稳定收敛所需的连续步数
+    stable_episodes_required: int        # 训练提前终止所需的连续收敛episodes数
 
-    # === 系统配置 ===
-    seed: int = 42                       # 随机种子，保证实验可重复
+    # === 系统配置（保留默认值）===
     device: str = 'auto'                 # 计算设备：'auto'自动选择, 'cpu'强制CPU, 'cuda'强制GPU
-
-    # === 输出配置 ===
     output_dir: str = 'results'          # 实验结果输出根目录（相对于项目根目录）
-    save_interval: int = 10              # 每隔多少episode保存一次模型（如果需要）
+    save_interval: int = 10              # 每隔多少episode保存一次模型
 
 
-def get_training_config():
+# 算法配置类型联合
+AlgoConfig = Union[MADDPGConfig, IDDPGConfig, MFDDPGConfig]
+
+
+# ============================================================
+# 预定义场景档案 (Predefined Scenario Profiles)
+# ============================================================
+
+# SiouxFalls: 小网络 (4个充电站)
+PROFILE_SIOUXFALLS = ScenarioProfile(
+    network_dir='data/siouxfalls',
+    network_name='siouxfalls',
+    max_episodes=10,
+    max_steps_per_episode=1000,
+    convergence_threshold=0.01,
+    stable_steps_required=5,
+    stable_episodes_required=3,
+)
+
+# Berlin Friedrichshain: 大网络 (20个充电站)
+PROFILE_BERLIN = ScenarioProfile(
+    network_dir='data/berlin_friedrichshain',
+    network_name='berlin_friedrichshain',
+    max_episodes=100,
+    max_steps_per_episode=1000,
+    convergence_threshold=0.02,
+    stable_steps_required=5,
+    stable_episodes_required=3,
+)
+
+
+@dataclass
+class ExperimentTask:
     """
-    获取训练流程配置（所有算法共用）
+    实验任务单元
 
-    Returns:
-        TrainingConfig: 训练流程配置
+    代表一次具体的实验运行：[场景档案] + [算法] + [随机种子]
+    用于组织"多场景 x 多算法"的对比实验。
     """
-    return TrainingConfig()
+    name: str                          # 任务唯一标识名 (如 "Sioux_MADDPG_Seed42")
+    scenario: ScenarioProfile          # 场景档案 (包含数据路径和训练规则)
+    algo_name: str                     # 算法名称 ("MADDPG", "IDDPG", "MFDDPG")
+    algo_config: AlgoConfig            # 对应的算法配置对象
+    seed: int                          # 本次运行的随机种子
 
+    def get_output_path(self) -> str:
+        """
+        生成规范的输出路径
 
-def get_maddpg_config():
-    """
-    获取MADDPG算法配置
+        格式: {output_dir}/{network_name}/{algo_name}/seed{seed}/{MM_DD_HH_mm}/
+        示例: results/siouxfalls/MADDPG/seed42/12_02_15_10/
+        """
+        timestamp = datetime.now().strftime("%m_%d_%H_%M")
+        return os.path.join(
+            self.scenario.output_dir,
+            self.scenario.network_name,
+            self.algo_name,
+            f"seed{self.seed}",
+            timestamp
+        )
 
-    Returns:
-        MADDPGConfig: MADDPG算法配置
-    """
-    return MADDPGConfig()
-
-
-def get_iddpg_config():
-    """
-    获取IDDPG算法配置
-
-    Returns:
-        IDDPGConfig: IDDPG算法配置
-    """
-    return IDDPGConfig()
-
-
-def get_mfddpg_config():
-    """
-    获取MF-DDPG算法配置
-
-    Returns:
-        MFDDPGConfig: MF-DDPG算法配置
-    """
-    return MFDDPGConfig()

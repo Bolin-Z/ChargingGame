@@ -14,7 +14,7 @@ import os
 project_root = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
-from src.utils.config import get_maddpg_config, get_training_config
+from src.utils.config import MADDPGConfig, PROFILE_SIOUXFALLS, ExperimentTask
 from src.trainer.MADDPGTrainer import MADDPGTrainer
 
 
@@ -73,22 +73,33 @@ def main():
     try:
         print("🚀 启动MADDPG充电站价格博弈训练")
         print(f"📁 项目根目录: {project_root}")
-        
+
         # 1. 加载配置
         print("⚙️  加载配置...")
-        maddpg_config = get_maddpg_config()
-        training_config = get_training_config()
+        scenario = PROFILE_SIOUXFALLS
+        algo_config = MADDPGConfig()
+        seed = 42
 
-        print(f"   训练配置: 最大{training_config.max_episodes}个Episodes, "
-              f"收敛阈值{training_config.convergence_threshold}, "
-              f"随机种子{training_config.seed}")
-        print(f"   算法配置: Actor-LR={maddpg_config.actor_lr}, "
-              f"Critic-LR={maddpg_config.critic_lr}, "
-              f"噪音强度={maddpg_config.noise_sigma}")
-        
+        # 创建实验任务
+        task = ExperimentTask(
+            name="MADDPG_SiouxFalls",
+            scenario=scenario,
+            algo_name="MADDPG",
+            algo_config=algo_config,
+            seed=seed
+        )
+
+        print(f"   场景配置: {scenario.network_name}, "
+              f"最大{scenario.max_episodes}个Episodes, "
+              f"收敛阈值{scenario.convergence_threshold}")
+        print(f"   算法配置: Actor-LR={algo_config.actor_lr}, "
+              f"Critic-LR={algo_config.critic_lr}, "
+              f"噪音强度={algo_config.noise_sigma}")
+        print(f"   随机种子: {seed}")
+
         # 2. 创建训练器
         print("🏗️  初始化训练器...")
-        trainer = MADDPGTrainer(maddpg_config, training_config)
+        trainer = MADDPGTrainer(task)
         
         # 3. 执行训练
         print("🎯 开始寻找纳什均衡...")

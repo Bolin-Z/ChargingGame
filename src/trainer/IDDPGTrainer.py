@@ -28,7 +28,7 @@ sys.path.insert(0, project_root)
 
 from src.algorithms.iddpg.iddpg import IndependentDDPG
 from src.env.EVCSChargingGameEnv import EVCSChargingGameEnv
-from src.utils.config import IDDPGConfig, TrainingConfig
+from src.utils.config import ExperimentTask
 
 
 class IDDPGTrainer:
@@ -41,22 +41,22 @@ class IDDPGTrainer:
     - UE-DTA层：交通仿真响应
     """
 
-    def __init__(self, iddpg_config: IDDPGConfig, training_config: TrainingConfig):
+    def __init__(self, task: ExperimentTask):
         """
         初始化IDDPGTrainer
 
         Args:
-            iddpg_config: IDDPG算法配置
-            training_config: 训练流程配置
+            task: 实验任务单元，包含场景档案、算法配置和随机种子
         """
-        self.config = training_config
-        self.iddpg_config = iddpg_config
+        self.task = task
+        self.config = task.scenario
+        self.iddpg_config = task.algo_config
 
         # 处理设备配置
-        if training_config.device == 'auto':
+        if self.config.device == 'auto':
             self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         else:
-            self.device = training_config.device
+            self.device = self.config.device
 
         print(f"使用设备: {self.device}")
         if self.device == 'cuda':
@@ -64,12 +64,12 @@ class IDDPGTrainer:
 
         # 1. 创建环境
         self.env = EVCSChargingGameEnv(
-            network_dir=training_config.network_dir,
-            network_name=training_config.network_name,
-            random_seed=training_config.seed,
-            max_steps=training_config.max_steps_per_episode,
-            convergence_threshold=training_config.convergence_threshold,
-            stable_steps_required=training_config.stable_steps_required
+            network_dir=self.config.network_dir,
+            network_name=self.config.network_name,
+            random_seed=task.seed,
+            max_steps=self.config.max_steps_per_episode,
+            convergence_threshold=self.config.convergence_threshold,
+            stable_steps_required=self.config.stable_steps_required
         )
 
         # 2. 从环境获取维度信息
@@ -89,19 +89,19 @@ class IDDPGTrainer:
             obs_dim=obs_dim,
             action_dim=action_dim,
             local_state_dim=local_state_dim,
-            buffer_capacity=iddpg_config.buffer_capacity,
-            max_batch_size=iddpg_config.max_batch_size,
-            actor_lr=iddpg_config.actor_lr,
-            critic_lr=iddpg_config.critic_lr,
-            gamma=iddpg_config.gamma,
-            tau=iddpg_config.tau,
-            seed=training_config.seed,
+            buffer_capacity=self.iddpg_config.buffer_capacity,
+            max_batch_size=self.iddpg_config.max_batch_size,
+            actor_lr=self.iddpg_config.actor_lr,
+            critic_lr=self.iddpg_config.critic_lr,
+            gamma=self.iddpg_config.gamma,
+            tau=self.iddpg_config.tau,
+            seed=task.seed,
             device=self.device,
-            actor_hidden_sizes=iddpg_config.actor_hidden_sizes,
-            critic_hidden_sizes=iddpg_config.critic_hidden_sizes,
-            noise_sigma=iddpg_config.noise_sigma,
-            noise_decay=iddpg_config.noise_decay,
-            min_noise=iddpg_config.min_noise
+            actor_hidden_sizes=self.iddpg_config.actor_hidden_sizes,
+            critic_hidden_sizes=self.iddpg_config.critic_hidden_sizes,
+            noise_sigma=self.iddpg_config.noise_sigma,
+            noise_decay=self.iddpg_config.noise_decay,
+            min_noise=self.iddpg_config.min_noise
         )
 
         # 4. 训练状态跟踪
@@ -152,8 +152,8 @@ class IDDPGTrainer:
         # 生成训练结果
         results = self._generate_training_results()
 
-        # 自动保存训练数据（使用配置的输出目录）
-        experiment_dir = self.save_training_data(self.config.output_dir)
+        # 自动保存训练数据
+        experiment_dir = self.save_training_data()
         results['experiment_dir'] = experiment_dir
 
         return results
@@ -355,19 +355,15 @@ class IDDPGTrainer:
             'final_nash_equilibrium': self.get_nash_equilibrium()
         }
 
-    def save_training_data(self, output_dir: str = "results") -> str:
+    def save_training_data(self) -> str:
         """
         保存训练数据到JSON文件
-
-        Args:
-            output_dir: 输出根目录
 
         Returns:
             str: 保存的实验目录路径
         """
-        # 创建带时间戳的实验目录
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        experiment_dir = os.path.join(output_dir, f"iddpg_experiment_{timestamp}")
+        # 使用 ExperimentTask 生成规范路径
+        experiment_dir = self.task.get_output_path()
         os.makedirs(experiment_dir, exist_ok=True)
 
         # 保存step_records到JSON文件
