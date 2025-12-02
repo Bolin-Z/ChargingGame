@@ -4,8 +4,8 @@
     "deltan": 5,
     "demand_multiplier": 3.5,
 
-    "charging_car_rate": 0.3,
-    "charging_link_length": 100,
+    "charging_car_rate": 0.1,
+    "charging_link_length": 3000,
     "charging_link_free_flow_speed": 10,
 
     "charging_periods": 8,
@@ -32,10 +32,10 @@
         "172": [0.5, 2.0]
     },
 
-    "routes_per_od": 5,
+    "routes_per_od": 10,
     "time_value_coefficient": 0.005,
-    "charging_demand_per_vehicle": 20,
+    "charging_demand_per_vehicle": 50,
     "ue_convergence_threshold": 1.0,
-    "ue_max_iterations": 50,
+    "ue_max_iterations": 100,
     "ue_swap_probability": 0.05
 }

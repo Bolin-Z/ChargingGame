@@ -157,9 +157,9 @@ PROFILE_SIOUXFALLS = ScenarioProfile(
 PROFILE_BERLIN = ScenarioProfile(
     network_dir='data/berlin_friedrichshain',
     network_name='berlin_friedrichshain',
-    max_episodes=100,
+    max_episodes=10,
     max_steps_per_episode=1000,
-    convergence_threshold=0.02,
+    convergence_threshold=0.01,
     stable_steps_required=5,
     stable_episodes_required=3,
 )

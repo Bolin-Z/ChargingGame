@@ -105,7 +105,42 @@ W.adddemand(orig, dest, start_t, end_t, q * demand_multiplier)
 **分析工具**: `analyze_station_placement.py`
 **可视化输出**: `data/berlin_friedrichshain/station_placement_comparison.png`
 
-### 5.2 待引入数据集：Anaheim
+### 5.2 UE-DTA 参数调优 (进行中)
+
+**目标**: 为 BF 网络找到最优的 `time_value_coefficient` 和 `ue_convergence_threshold` 参数。
+
+**背景**:
+- `time_value_coefficient`: 时间价值系数，影响时间成本与充电成本的平衡
+  - 值太小 → 用户只看价格，位置优势消失
+  - 值太大 → 用户只看时间，价格竞争无效
+- `ue_convergence_threshold`: UE收敛阈值，影响收敛精度与计算时间
+
+**测试工具**: `test_ue_convergence.py`
+
+**参数扫描范围**:
+- `time_value_coefficient`: [0.001, 0.005, 0.01, 0.02, 0.05]
+- `ue_convergence_threshold`: [0.5, 1.0, 2.0]
+
+**判断标准**: 时间成本与充电成本比例在 `1:3 ~ 3:1` 范围内较理想。
+
+**当前配置** (待验证):
+```json
+{
+    "time_value_coefficient": 0.005,
+    "ue_convergence_threshold": 1.0,
+    "charging_demand_per_vehicle": 50
+}
+```
+
+**待完成**:
+- [ ] 运行参数扫描测试
+- [ ] 分析时间成本 vs 充电成本比例
+- [ ] 确定推荐参数值
+- [ ] 更新 settings.json
+
+---
+
+### 5.3 待引入数据集：Anaheim
 
 **定位**: **规模泛化验证**。作为 Sioux Falls (理论) 到 Berlin (真实) 之间的“中型进阶算例”。
 
