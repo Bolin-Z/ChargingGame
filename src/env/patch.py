@@ -5,16 +5,28 @@ import io
 from matplotlib import pyplot as plt
 from uxsim.analyzer import get_font_for_matplotlib, load_font_data
 
+# 全局标记：防止重复patch
+_patch_applied = False
+# 保存原始方法的全局变量
+_original_vehicle_init = None
+_original_vehicle_update = None
+
 
 def patch_uxsim():
     """
     统一的 UXSim 补丁入口点
+    仅在首次调用时应用补丁，后续调用直接返回
     """
+    global _patch_applied, _original_vehicle_init, _original_vehicle_update
+
+    # 防止重复patch
+    if _patch_applied:
+        return
+
     # 保存原始方法
-    global _original_vehicle_init, _original_vehicle_update
     _original_vehicle_init = uxsim.Vehicle.__init__
     _original_vehicle_update = uxsim.Vehicle.update
-    
+
     # 应用补丁
     uxsim.Analyzer.__init__ = _patched_analyzer_init # 修复 Analyzer 初始化时的文件夹创建问题
     uxsim.Vehicle.__init__ = _patched_vehicle_init # 添加预定路径支持
@@ -23,6 +35,8 @@ def patch_uxsim():
     uxsim.Vehicle.update = _patched_vehicle_update # 预定路径状态管理
     uxsim.World.addVehicle = _patched_world_add_vehicle # 新增预定路径车辆创建方法
     uxsim.World.adddemand = _patched_world_adddemand # 修改为使用增强Vehicle
+
+    _patch_applied = True
 
     
 def _patched_analyzer_init(s, W, font_pillow=None, font_matplotlib=None):
