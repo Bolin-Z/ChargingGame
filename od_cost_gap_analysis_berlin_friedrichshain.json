@@ -1,0 +1,5574 @@
+{
+  "network": "berlin_friedrichshain",
+  "config": {
+    "fixed_price_ratio": 0.5,
+    "ue_iterations": 50,
+    "time_value_coefficient": 0.005,
+    "ue_convergence_threshold": 1.0
+  },
+  "iterations": [
+    {
+      "iteration": 1,
+      "global_avg_cost_gap": 0.29829454896073426,
+      "od_level_max_avg_gap": 4.116,
+      "od_level_avg_of_avg_gap": 0.396,
+      "od_level_max_of_max_gap": 7.169,
+      "total_route_switches": 59,
+      "n_od_pairs": 472,
+      "n_high_gap_ods": 64,
+      "high_gap_ods": [
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.116,
+          "max_cost_gap": 4.116,
+          "min_cost_gap": 4.116,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->14",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.044,
+          "max_cost_gap": 4.044,
+          "min_cost_gap": 4.044,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.475,
+          "max_cost_gap": 3.475,
+          "min_cost_gap": 3.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.25,
+          "max_cost_gap": 3.25,
+          "min_cost_gap": 3.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.225,
+          "max_cost_gap": 3.225,
+          "min_cost_gap": 3.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.125,
+          "max_cost_gap": 3.125,
+          "min_cost_gap": 3.125,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.1,
+          "max_cost_gap": 3.1,
+          "min_cost_gap": 3.1,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.08,
+          "max_cost_gap": 3.08,
+          "min_cost_gap": 3.08,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "17->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.075,
+          "max_cost_gap": 3.075,
+          "min_cost_gap": 3.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.075,
+          "max_cost_gap": 3.075,
+          "min_cost_gap": 3.075,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.044,
+        "p75": 0.376,
+        "p90": 1.317,
+        "p95": 2.264,
+        "max": 4.116
+      }
+    },
+    {
+      "iteration": 2,
+      "global_avg_cost_gap": 0.26764180414594374,
+      "od_level_max_avg_gap": 3.3,
+      "od_level_avg_of_avg_gap": 0.358,
+      "od_level_max_of_max_gap": 4.9,
+      "total_route_switches": 48,
+      "n_od_pairs": 482,
+      "n_high_gap_ods": 61,
+      "high_gap_ods": [
+        {
+          "od": "12->14",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.3,
+          "max_cost_gap": 3.3,
+          "min_cost_gap": 3.3,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.75,
+          "max_cost_gap": 2.75,
+          "min_cost_gap": 2.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "7->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.719,
+          "max_cost_gap": 2.719,
+          "min_cost_gap": 2.719,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->9",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->8",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.675,
+          "max_cost_gap": 2.675,
+          "min_cost_gap": 2.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.55,
+          "max_cost_gap": 2.55,
+          "min_cost_gap": 2.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.5,
+          "max_cost_gap": 2.5,
+          "min_cost_gap": 2.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "6->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.444,
+          "max_cost_gap": 2.444,
+          "min_cost_gap": 2.444,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "6->4",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.438,
+          "max_cost_gap": 4.55,
+          "min_cost_gap": 0.325,
+          "std_cost_gap": 2.112
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.2,
+          "max_cost_gap": 2.2,
+          "min_cost_gap": 2.2,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.05,
+        "p75": 0.5,
+        "p90": 1.17,
+        "p95": 1.686,
+        "max": 3.3
+      }
+    },
+    {
+      "iteration": 3,
+      "global_avg_cost_gap": 0.20193273305300882,
+      "od_level_max_avg_gap": 2.325,
+      "od_level_avg_of_avg_gap": 0.243,
+      "od_level_max_of_max_gap": 3.854,
+      "total_route_switches": 53,
+      "n_od_pairs": 471,
+      "n_high_gap_ods": 30,
+      "high_gap_ods": [
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.325,
+          "max_cost_gap": 2.325,
+          "min_cost_gap": 2.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->8",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.275,
+          "max_cost_gap": 2.275,
+          "min_cost_gap": 2.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->17",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 3.825,
+          "min_cost_gap": 0.25,
+          "std_cost_gap": 1.381
+        },
+        {
+          "od": "7->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.975,
+          "max_cost_gap": 1.975,
+          "min_cost_gap": 1.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->20",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.948,
+          "max_cost_gap": 3.854,
+          "min_cost_gap": 0.004,
+          "std_cost_gap": 1.699
+        },
+        {
+          "od": "23->1",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.865,
+          "max_cost_gap": 3.375,
+          "min_cost_gap": 0.25,
+          "std_cost_gap": 1.278
+        },
+        {
+          "od": "23->9",
+          "type": "uncharging",
+          "n_vehicles": 15,
+          "avg_cost_gap": 1.78,
+          "max_cost_gap": 3.725,
+          "min_cost_gap": 0.021,
+          "std_cost_gap": 1.431
+        },
+        {
+          "od": "3->20",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.779,
+          "max_cost_gap": 2.95,
+          "min_cost_gap": 0.127,
+          "std_cost_gap": 1.203
+        },
+        {
+          "od": "21->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.716,
+          "max_cost_gap": 1.716,
+          "min_cost_gap": 1.716,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.688,
+          "max_cost_gap": 2.55,
+          "min_cost_gap": 0.825,
+          "std_cost_gap": 0.863
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.046,
+        "p75": 0.333,
+        "p90": 0.77,
+        "p95": 1.158,
+        "max": 2.325
+      }
+    },
+    {
+      "iteration": 4,
+      "global_avg_cost_gap": 0.18354722649219532,
+      "od_level_max_avg_gap": 3.25,
+      "od_level_avg_of_avg_gap": 0.254,
+      "od_level_max_of_max_gap": 4.4,
+      "total_route_switches": 42,
+      "n_od_pairs": 455,
+      "n_high_gap_ods": 27,
+      "high_gap_ods": [
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.25,
+          "max_cost_gap": 3.25,
+          "min_cost_gap": 3.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.234,
+          "max_cost_gap": 3.234,
+          "min_cost_gap": 3.234,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->8",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.225,
+          "max_cost_gap": 3.225,
+          "min_cost_gap": 3.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.125,
+          "max_cost_gap": 3.125,
+          "min_cost_gap": 3.125,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->5",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.825,
+          "max_cost_gap": 2.825,
+          "min_cost_gap": 2.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.55,
+          "max_cost_gap": 2.55,
+          "min_cost_gap": 2.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.45,
+          "max_cost_gap": 2.45,
+          "min_cost_gap": 2.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.275,
+          "max_cost_gap": 2.275,
+          "min_cost_gap": 2.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.1,
+          "max_cost_gap": 2.1,
+          "min_cost_gap": 2.1,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.096,
+          "max_cost_gap": 2.096,
+          "min_cost_gap": 2.096,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.035,
+        "p75": 0.28,
+        "p90": 0.724,
+        "p95": 1.242,
+        "max": 3.25
+      }
+    },
+    {
+      "iteration": 5,
+      "global_avg_cost_gap": 0.2638697946075966,
+      "od_level_max_avg_gap": 4.6,
+      "od_level_avg_of_avg_gap": 0.338,
+      "od_level_max_of_max_gap": 6.475,
+      "total_route_switches": 48,
+      "n_od_pairs": 497,
+      "n_high_gap_ods": 54,
+      "high_gap_ods": [
+        {
+          "od": "23->21",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.6,
+          "max_cost_gap": 4.6,
+          "min_cost_gap": 4.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.538,
+          "max_cost_gap": 4.538,
+          "min_cost_gap": 4.538,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.897,
+          "max_cost_gap": 3.897,
+          "min_cost_gap": 3.897,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.45,
+          "max_cost_gap": 3.45,
+          "min_cost_gap": 3.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.025,
+          "max_cost_gap": 3.025,
+          "min_cost_gap": 3.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.0,
+          "max_cost_gap": 3.0,
+          "min_cost_gap": 3.0,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.6,
+          "max_cost_gap": 2.6,
+          "min_cost_gap": 2.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.316,
+          "max_cost_gap": 2.316,
+          "min_cost_gap": 2.316,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->15",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.233,
+          "max_cost_gap": 3.65,
+          "min_cost_gap": 0.65,
+          "std_cost_gap": 1.23
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.169,
+          "max_cost_gap": 4.338,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.169
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.05,
+        "p75": 0.45,
+        "p90": 1.055,
+        "p95": 1.455,
+        "max": 4.6
+      }
+    },
+    {
+      "iteration": 6,
+      "global_avg_cost_gap": 0.1678428709471497,
+      "od_level_max_avg_gap": 4.25,
+      "od_level_avg_of_avg_gap": 0.223,
+      "od_level_max_of_max_gap": 5.1,
+      "total_route_switches": 38,
+      "n_od_pairs": 454,
+      "n_high_gap_ods": 21,
+      "high_gap_ods": [
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.25,
+          "max_cost_gap": 4.25,
+          "min_cost_gap": 4.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.75,
+          "max_cost_gap": 3.75,
+          "min_cost_gap": 3.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.663,
+          "max_cost_gap": 3.663,
+          "min_cost_gap": 3.663,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->8",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.65,
+          "max_cost_gap": 2.65,
+          "min_cost_gap": 2.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.412,
+          "max_cost_gap": 4.475,
+          "min_cost_gap": 0.35,
+          "std_cost_gap": 2.062
+        },
+        {
+          "od": "23->1",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.058,
+          "max_cost_gap": 5.1,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.195
+        },
+        {
+          "od": "11->6",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.792,
+          "max_cost_gap": 3.25,
+          "min_cost_gap": 0.5,
+          "std_cost_gap": 1.129
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->4",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.575,
+          "max_cost_gap": 4.15,
+          "min_cost_gap": 0.15,
+          "std_cost_gap": 1.824
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.542,
+          "max_cost_gap": 2.925,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.199
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.032,
+        "p75": 0.226,
+        "p90": 0.683,
+        "p95": 0.965,
+        "max": 4.25
+      }
+    },
+    {
+      "iteration": 7,
+      "global_avg_cost_gap": 0.21518555665550515,
+      "od_level_max_avg_gap": 3.438,
+      "od_level_avg_of_avg_gap": 0.273,
+      "od_level_max_of_max_gap": 7.95,
+      "total_route_switches": 43,
+      "n_od_pairs": 503,
+      "n_high_gap_ods": 41,
+      "high_gap_ods": [
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.438,
+          "max_cost_gap": 3.438,
+          "min_cost_gap": 3.438,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.294,
+          "max_cost_gap": 6.588,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.294
+        },
+        {
+          "od": "23->21",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.275,
+          "max_cost_gap": 3.275,
+          "min_cost_gap": 3.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.272,
+          "max_cost_gap": 3.272,
+          "min_cost_gap": 3.272,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.6,
+          "max_cost_gap": 2.6,
+          "min_cost_gap": 2.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.225,
+          "max_cost_gap": 2.225,
+          "min_cost_gap": 2.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.075,
+          "max_cost_gap": 2.075,
+          "min_cost_gap": 2.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->18",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 2.037,
+          "max_cost_gap": 7.35,
+          "min_cost_gap": 0.025,
+          "std_cost_gap": 2.81
+        },
+        {
+          "od": "8->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.925,
+          "max_cost_gap": 1.925,
+          "min_cost_gap": 1.925,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->11",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.798,
+          "max_cost_gap": 2.734,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.272
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.044,
+        "p75": 0.325,
+        "p90": 0.842,
+        "p95": 1.423,
+        "max": 3.438
+      }
+    },
+    {
+      "iteration": 8,
+      "global_avg_cost_gap": 0.15578753046795782,
+      "od_level_max_avg_gap": 4.138,
+      "od_level_avg_of_avg_gap": 0.2,
+      "od_level_max_of_max_gap": 4.85,
+      "total_route_switches": 43,
+      "n_od_pairs": 461,
+      "n_high_gap_ods": 20,
+      "high_gap_ods": [
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.138,
+          "max_cost_gap": 4.138,
+          "min_cost_gap": 4.138,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.497,
+          "max_cost_gap": 3.497,
+          "min_cost_gap": 3.497,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.325,
+          "max_cost_gap": 3.325,
+          "min_cost_gap": 3.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.325,
+          "max_cost_gap": 2.325,
+          "min_cost_gap": 2.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.137,
+          "max_cost_gap": 4.05,
+          "min_cost_gap": 0.225,
+          "std_cost_gap": 1.912
+        },
+        {
+          "od": "16->4",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.842,
+          "max_cost_gap": 4.1,
+          "min_cost_gap": 0.2,
+          "std_cost_gap": 1.651
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.725,
+          "max_cost_gap": 1.725,
+          "min_cost_gap": 1.725,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->1",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.683,
+          "max_cost_gap": 4.7,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.138
+        },
+        {
+          "od": "20->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.575,
+          "max_cost_gap": 1.575,
+          "min_cost_gap": 1.575,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.033,
+        "p75": 0.191,
+        "p90": 0.594,
+        "p95": 0.944,
+        "max": 4.138
+      }
+    },
+    {
+      "iteration": 9,
+      "global_avg_cost_gap": 0.1242167390476613,
+      "od_level_max_avg_gap": 3.588,
+      "od_level_avg_of_avg_gap": 0.159,
+      "od_level_max_of_max_gap": 3.6,
+      "total_route_switches": 49,
+      "n_od_pairs": 459,
+      "n_high_gap_ods": 16,
+      "high_gap_ods": [
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.588,
+          "max_cost_gap": 3.588,
+          "min_cost_gap": 3.588,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.95,
+          "max_cost_gap": 1.95,
+          "min_cost_gap": 1.95,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->16",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.8,
+          "max_cost_gap": 1.8,
+          "min_cost_gap": 1.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.775,
+          "max_cost_gap": 1.775,
+          "min_cost_gap": 1.775,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.55,
+          "max_cost_gap": 1.55,
+          "min_cost_gap": 1.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->4",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.5,
+          "max_cost_gap": 1.5,
+          "min_cost_gap": 1.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->5",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.4,
+          "max_cost_gap": 1.4,
+          "min_cost_gap": 1.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.35,
+          "max_cost_gap": 1.35,
+          "min_cost_gap": 1.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.3,
+          "max_cost_gap": 2.325,
+          "min_cost_gap": 0.275,
+          "std_cost_gap": 1.025
+        },
+        {
+          "od": "11->6",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.242,
+          "max_cost_gap": 2.175,
+          "min_cost_gap": 0.1,
+          "std_cost_gap": 0.86
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.023,
+        "p75": 0.162,
+        "p90": 0.468,
+        "p95": 0.8,
+        "max": 3.588
+      }
+    },
+    {
+      "iteration": 10,
+      "global_avg_cost_gap": 0.24041657454464627,
+      "od_level_max_avg_gap": 3.65,
+      "od_level_avg_of_avg_gap": 0.316,
+      "od_level_max_of_max_gap": 7.775,
+      "total_route_switches": 53,
+      "n_od_pairs": 515,
+      "n_high_gap_ods": 47,
+      "high_gap_ods": [
+        {
+          "od": "2->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.65,
+          "max_cost_gap": 3.65,
+          "min_cost_gap": 3.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.575,
+          "max_cost_gap": 3.575,
+          "min_cost_gap": 3.575,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.325,
+          "max_cost_gap": 3.325,
+          "min_cost_gap": 3.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->21",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.937,
+          "max_cost_gap": 5.65,
+          "min_cost_gap": 0.225,
+          "std_cost_gap": 2.712
+        },
+        {
+          "od": "14->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.9,
+          "max_cost_gap": 2.9,
+          "min_cost_gap": 2.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.8,
+          "max_cost_gap": 2.8,
+          "min_cost_gap": 2.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.513,
+          "max_cost_gap": 2.513,
+          "min_cost_gap": 2.513,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.425,
+          "max_cost_gap": 2.425,
+          "min_cost_gap": 2.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.325,
+          "max_cost_gap": 2.325,
+          "min_cost_gap": 2.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->19",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.262,
+          "max_cost_gap": 4.525,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.262
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.075,
+        "p75": 0.399,
+        "p90": 0.975,
+        "p95": 1.388,
+        "max": 3.65
+      }
+    },
+    {
+      "iteration": 11,
+      "global_avg_cost_gap": 0.1957462869659376,
+      "od_level_max_avg_gap": 3.025,
+      "od_level_avg_of_avg_gap": 0.25,
+      "od_level_max_of_max_gap": 6.225,
+      "total_route_switches": 58,
+      "n_od_pairs": 519,
+      "n_high_gap_ods": 38,
+      "high_gap_ods": [
+        {
+          "od": "14->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.025,
+          "max_cost_gap": 3.025,
+          "min_cost_gap": 3.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.85,
+          "max_cost_gap": 2.85,
+          "min_cost_gap": 2.85,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 2.585,
+          "max_cost_gap": 6.175,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.364
+        },
+        {
+          "od": "2->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.575,
+          "max_cost_gap": 2.575,
+          "min_cost_gap": 2.575,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.075,
+          "max_cost_gap": 2.075,
+          "min_cost_gap": 2.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.075,
+          "max_cost_gap": 3.425,
+          "min_cost_gap": 0.725,
+          "std_cost_gap": 1.35
+        },
+        {
+          "od": "23->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.0,
+          "max_cost_gap": 2.0,
+          "min_cost_gap": 2.0,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->21",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.875,
+          "max_cost_gap": 1.875,
+          "min_cost_gap": 1.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.8,
+          "max_cost_gap": 1.8,
+          "min_cost_gap": 1.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.046,
+        "p75": 0.266,
+        "p90": 0.86,
+        "p95": 1.202,
+        "max": 3.025
+      }
+    },
+    {
+      "iteration": 12,
+      "global_avg_cost_gap": 0.16825945395013125,
+      "od_level_max_avg_gap": 4.475,
+      "od_level_avg_of_avg_gap": 0.225,
+      "od_level_max_of_max_gap": 5.1,
+      "total_route_switches": 42,
+      "n_od_pairs": 466,
+      "n_high_gap_ods": 29,
+      "high_gap_ods": [
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.475,
+          "max_cost_gap": 4.475,
+          "min_cost_gap": 4.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.375,
+          "max_cost_gap": 3.375,
+          "min_cost_gap": 3.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.025,
+          "max_cost_gap": 3.025,
+          "min_cost_gap": 3.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.9,
+          "max_cost_gap": 2.9,
+          "min_cost_gap": 2.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.35,
+          "max_cost_gap": 2.35,
+          "min_cost_gap": 2.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.35,
+          "max_cost_gap": 4.125,
+          "min_cost_gap": 0.575,
+          "std_cost_gap": 1.775
+        },
+        {
+          "od": "10->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.2,
+          "max_cost_gap": 2.2,
+          "min_cost_gap": 2.2,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->4",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 4.3,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.15
+        },
+        {
+          "od": "5->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 2.025,
+          "min_cost_gap": 2.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.95,
+          "max_cost_gap": 1.95,
+          "min_cost_gap": 1.95,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.202,
+        "p90": 0.622,
+        "p95": 1.247,
+        "max": 4.475
+      }
+    },
+    {
+      "iteration": 13,
+      "global_avg_cost_gap": 0.18799582651836,
+      "od_level_max_avg_gap": 4.375,
+      "od_level_avg_of_avg_gap": 0.245,
+      "od_level_max_of_max_gap": 6.1,
+      "total_route_switches": 43,
+      "n_od_pairs": 495,
+      "n_high_gap_ods": 30,
+      "high_gap_ods": [
+        {
+          "od": "19->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.375,
+          "max_cost_gap": 4.375,
+          "min_cost_gap": 4.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.197,
+          "max_cost_gap": 4.197,
+          "min_cost_gap": 4.197,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "21->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.9,
+          "max_cost_gap": 3.9,
+          "min_cost_gap": 3.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.831,
+          "max_cost_gap": 5.663,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.831
+        },
+        {
+          "od": "2->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.575,
+          "max_cost_gap": 2.575,
+          "min_cost_gap": 2.575,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 2.206,
+          "max_cost_gap": 6.1,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.382
+        },
+        {
+          "od": "10->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.175,
+          "max_cost_gap": 2.175,
+          "min_cost_gap": 2.175,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.975,
+          "max_cost_gap": 1.975,
+          "min_cost_gap": 1.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.888,
+          "max_cost_gap": 1.888,
+          "min_cost_gap": 1.888,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.73,
+          "max_cost_gap": 3.459,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.73
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.033,
+        "p75": 0.297,
+        "p90": 0.723,
+        "p95": 1.075,
+        "max": 4.375
+      }
+    },
+    {
+      "iteration": 14,
+      "global_avg_cost_gap": 0.23902686166144052,
+      "od_level_max_avg_gap": 6.6,
+      "od_level_avg_of_avg_gap": 0.298,
+      "od_level_max_of_max_gap": 7.675,
+      "total_route_switches": 47,
+      "n_od_pairs": 486,
+      "n_high_gap_ods": 46,
+      "high_gap_ods": [
+        {
+          "od": "19->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.6,
+          "max_cost_gap": 6.6,
+          "min_cost_gap": 6.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.947,
+          "max_cost_gap": 5.947,
+          "min_cost_gap": 5.947,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->19",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.538,
+          "max_cost_gap": 4.538,
+          "min_cost_gap": 4.538,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 4.006,
+          "max_cost_gap": 6.2,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.458
+        },
+        {
+          "od": "10->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.8,
+          "max_cost_gap": 3.8,
+          "min_cost_gap": 3.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.719,
+          "max_cost_gap": 7.438,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.719
+        },
+        {
+          "od": "19->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.342,
+          "max_cost_gap": 6.684,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.342
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.6,
+          "max_cost_gap": 2.6,
+          "min_cost_gap": 2.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.6,
+          "max_cost_gap": 2.6,
+          "min_cost_gap": 2.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.55,
+          "max_cost_gap": 2.55,
+          "min_cost_gap": 2.55,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.237,
+        "p90": 0.853,
+        "p95": 1.448,
+        "max": 6.6
+      }
+    },
+    {
+      "iteration": 15,
+      "global_avg_cost_gap": 0.21153017629270307,
+      "od_level_max_avg_gap": 6.8,
+      "od_level_avg_of_avg_gap": 0.259,
+      "od_level_max_of_max_gap": 6.95,
+      "total_route_switches": 45,
+      "n_od_pairs": 505,
+      "n_high_gap_ods": 38,
+      "high_gap_ods": [
+        {
+          "od": "14->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.8,
+          "max_cost_gap": 6.8,
+          "min_cost_gap": 6.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.425,
+          "max_cost_gap": 5.425,
+          "min_cost_gap": 5.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.45,
+          "max_cost_gap": 4.45,
+          "min_cost_gap": 4.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.375,
+          "max_cost_gap": 4.375,
+          "min_cost_gap": 4.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.1,
+          "max_cost_gap": 4.1,
+          "min_cost_gap": 4.1,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.65,
+          "max_cost_gap": 3.65,
+          "min_cost_gap": 3.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.3,
+          "max_cost_gap": 3.3,
+          "min_cost_gap": 3.3,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 3.221,
+          "max_cost_gap": 6.15,
+          "min_cost_gap": 0.005,
+          "std_cost_gap": 2.378
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.988,
+          "max_cost_gap": 5.9,
+          "min_cost_gap": 0.075,
+          "std_cost_gap": 2.912
+        },
+        {
+          "od": "22->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.925,
+          "max_cost_gap": 5.85,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.925
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.177,
+        "p90": 0.764,
+        "p95": 1.195,
+        "max": 6.8
+      }
+    },
+    {
+      "iteration": 16,
+      "global_avg_cost_gap": 0.19472254299451824,
+      "od_level_max_avg_gap": 4.9,
+      "od_level_avg_of_avg_gap": 0.238,
+      "od_level_max_of_max_gap": 6.15,
+      "total_route_switches": 42,
+      "n_od_pairs": 466,
+      "n_high_gap_ods": 26,
+      "high_gap_ods": [
+        {
+          "od": "5->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.9,
+          "max_cost_gap": 4.9,
+          "min_cost_gap": 4.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.809,
+          "max_cost_gap": 4.809,
+          "min_cost_gap": 4.809,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.8,
+          "max_cost_gap": 4.8,
+          "min_cost_gap": 4.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.5,
+          "max_cost_gap": 4.5,
+          "min_cost_gap": 4.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 3.462,
+          "max_cost_gap": 6.15,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.45
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.769,
+          "max_cost_gap": 5.538,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.769
+        },
+        {
+          "od": "19->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.442,
+          "max_cost_gap": 4.884,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.442
+        },
+        {
+          "od": "4->6",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.35,
+          "max_cost_gap": 4.6,
+          "min_cost_gap": 0.1,
+          "std_cost_gap": 2.25
+        },
+        {
+          "od": "8->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.194,
+          "max_cost_gap": 4.388,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.194
+        },
+        {
+          "od": "10->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.175,
+          "max_cost_gap": 2.175,
+          "min_cost_gap": 2.175,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.178,
+        "p90": 0.676,
+        "p95": 1.208,
+        "max": 4.9
+      }
+    },
+    {
+      "iteration": 17,
+      "global_avg_cost_gap": 0.26441575117281313,
+      "od_level_max_avg_gap": 6.625,
+      "od_level_avg_of_avg_gap": 0.323,
+      "od_level_max_of_max_gap": 8.975,
+      "total_route_switches": 57,
+      "n_od_pairs": 494,
+      "n_high_gap_ods": 52,
+      "high_gap_ods": [
+        {
+          "od": "21->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.625,
+          "max_cost_gap": 6.625,
+          "min_cost_gap": 6.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->3",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.2,
+          "max_cost_gap": 5.2,
+          "min_cost_gap": 5.2,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 4.244,
+          "max_cost_gap": 7.15,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.825
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 4.019,
+          "max_cost_gap": 8.038,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 4.019
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.959,
+          "max_cost_gap": 3.959,
+          "min_cost_gap": 3.959,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.9,
+          "max_cost_gap": 3.9,
+          "min_cost_gap": 3.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.613,
+          "max_cost_gap": 7.225,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.613
+        },
+        {
+          "od": "22->4",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.35,
+          "max_cost_gap": 3.35,
+          "min_cost_gap": 3.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.088,
+          "max_cost_gap": 5.875,
+          "min_cost_gap": 0.3,
+          "std_cost_gap": 2.788
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.05,
+          "max_cost_gap": 3.05,
+          "min_cost_gap": 3.05,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.028,
+        "p75": 0.258,
+        "p90": 1.025,
+        "p95": 1.808,
+        "max": 6.625
+      }
+    },
+    {
+      "iteration": 18,
+      "global_avg_cost_gap": 0.2542267106505637,
+      "od_level_max_avg_gap": 7.975,
+      "od_level_avg_of_avg_gap": 0.307,
+      "od_level_max_of_max_gap": 8.9,
+      "total_route_switches": 52,
+      "n_od_pairs": 498,
+      "n_high_gap_ods": 41,
+      "high_gap_ods": [
+        {
+          "od": "21->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 7.975,
+          "max_cost_gap": 7.975,
+          "min_cost_gap": 7.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 7.784,
+          "max_cost_gap": 7.784,
+          "min_cost_gap": 7.784,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 4.326,
+          "max_cost_gap": 8.652,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 4.326
+        },
+        {
+          "od": "19->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.93,
+          "max_cost_gap": 7.859,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.93
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 3.895,
+          "max_cost_gap": 7.5,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.269
+        },
+        {
+          "od": "19->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.665,
+          "max_cost_gap": 7.204,
+          "min_cost_gap": 0.125,
+          "std_cost_gap": 3.54
+        },
+        {
+          "od": "22->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.607,
+          "max_cost_gap": 7.7,
+          "min_cost_gap": 0.05,
+          "std_cost_gap": 3.601
+        },
+        {
+          "od": "4->13",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.5,
+          "max_cost_gap": 7.275,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.378
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.425,
+          "max_cost_gap": 2.425,
+          "min_cost_gap": 2.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->4",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 2.419,
+          "max_cost_gap": 7.15,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.822
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.035,
+        "p75": 0.27,
+        "p90": 0.875,
+        "p95": 1.478,
+        "max": 7.975
+      }
+    },
+    {
+      "iteration": 19,
+      "global_avg_cost_gap": 0.16484637524040277,
+      "od_level_max_avg_gap": 5.05,
+      "od_level_avg_of_avg_gap": 0.196,
+      "od_level_max_of_max_gap": 5.05,
+      "total_route_switches": 39,
+      "n_od_pairs": 501,
+      "n_high_gap_ods": 21,
+      "high_gap_ods": [
+        {
+          "od": "23->15",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.05,
+          "max_cost_gap": 5.05,
+          "min_cost_gap": 5.05,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.775,
+          "max_cost_gap": 2.775,
+          "min_cost_gap": 2.775,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.75,
+          "max_cost_gap": 2.75,
+          "min_cost_gap": 2.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.65,
+          "max_cost_gap": 2.65,
+          "min_cost_gap": 2.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.525,
+          "max_cost_gap": 5.05,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.525
+        },
+        {
+          "od": "14->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 2.025,
+          "min_cost_gap": 2.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.994,
+          "max_cost_gap": 4.55,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.769
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.8,
+          "max_cost_gap": 1.8,
+          "min_cost_gap": 1.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->20",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.613,
+          "max_cost_gap": 3.275,
+          "min_cost_gap": 0.002,
+          "std_cost_gap": 1.483
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.205,
+        "p90": 0.55,
+        "p95": 0.819,
+        "max": 5.05
+      }
+    },
+    {
+      "iteration": 20,
+      "global_avg_cost_gap": 0.2474284558352897,
+      "od_level_max_avg_gap": 6.534,
+      "od_level_avg_of_avg_gap": 0.295,
+      "od_level_max_of_max_gap": 7.75,
+      "total_route_switches": 31,
+      "n_od_pairs": 484,
+      "n_high_gap_ods": 48,
+      "high_gap_ods": [
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.534,
+          "max_cost_gap": 6.534,
+          "min_cost_gap": 6.534,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.825,
+          "max_cost_gap": 3.825,
+          "min_cost_gap": 3.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.7,
+          "max_cost_gap": 3.7,
+          "min_cost_gap": 3.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.639,
+          "max_cost_gap": 7.277,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.639
+        },
+        {
+          "od": "4->6",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.032,
+          "max_cost_gap": 5.8,
+          "min_cost_gap": 0.264,
+          "std_cost_gap": 2.768
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.875,
+          "max_cost_gap": 2.875,
+          "min_cost_gap": 2.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 2.68,
+          "max_cost_gap": 6.725,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.557
+        },
+        {
+          "od": "14->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.4,
+          "max_cost_gap": 2.4,
+          "min_cost_gap": 2.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->2",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.375,
+          "max_cost_gap": 4.7,
+          "min_cost_gap": 0.05,
+          "std_cost_gap": 2.325
+        },
+        {
+          "od": "16->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.25,
+          "max_cost_gap": 2.25,
+          "min_cost_gap": 2.25,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.282,
+        "p90": 0.942,
+        "p95": 1.558,
+        "max": 6.534
+      }
+    },
+    {
+      "iteration": 21,
+      "global_avg_cost_gap": 0.210569727159235,
+      "od_level_max_avg_gap": 5.75,
+      "od_level_avg_of_avg_gap": 0.277,
+      "od_level_max_of_max_gap": 5.75,
+      "total_route_switches": 41,
+      "n_od_pairs": 472,
+      "n_high_gap_ods": 32,
+      "high_gap_ods": [
+        {
+          "od": "17->11",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.75,
+          "max_cost_gap": 5.75,
+          "min_cost_gap": 5.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->15",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.35,
+          "max_cost_gap": 5.35,
+          "min_cost_gap": 5.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.625,
+          "max_cost_gap": 4.625,
+          "min_cost_gap": 4.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.5,
+          "max_cost_gap": 4.5,
+          "min_cost_gap": 4.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.809,
+          "max_cost_gap": 3.809,
+          "min_cost_gap": 3.809,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.65,
+          "max_cost_gap": 3.65,
+          "min_cost_gap": 3.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.45,
+          "max_cost_gap": 3.45,
+          "min_cost_gap": 3.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.425,
+          "max_cost_gap": 3.425,
+          "min_cost_gap": 3.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "2->9",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.2,
+          "max_cost_gap": 3.2,
+          "min_cost_gap": 3.2,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.75,
+          "max_cost_gap": 2.75,
+          "min_cost_gap": 2.75,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.27,
+        "p90": 0.702,
+        "p95": 1.223,
+        "max": 5.75
+      }
+    },
+    {
+      "iteration": 22,
+      "global_avg_cost_gap": 0.22073799031944746,
+      "od_level_max_avg_gap": 6.475,
+      "od_level_avg_of_avg_gap": 0.257,
+      "od_level_max_of_max_gap": 7.7,
+      "total_route_switches": 37,
+      "n_od_pairs": 517,
+      "n_high_gap_ods": 34,
+      "high_gap_ods": [
+        {
+          "od": "12->15",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.475,
+          "max_cost_gap": 6.475,
+          "min_cost_gap": 6.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.009,
+          "max_cost_gap": 5.009,
+          "min_cost_gap": 5.009,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.95,
+          "max_cost_gap": 4.95,
+          "min_cost_gap": 4.95,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "17->11",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.5,
+          "max_cost_gap": 4.5,
+          "min_cost_gap": 4.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.4,
+          "max_cost_gap": 4.4,
+          "min_cost_gap": 4.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.075,
+          "max_cost_gap": 3.075,
+          "min_cost_gap": 3.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->4",
+          "type": "uncharging",
+          "n_vehicles": 6,
+          "avg_cost_gap": 2.338,
+          "max_cost_gap": 6.825,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.667
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 2.325,
+          "max_cost_gap": 6.625,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.567
+        },
+        {
+          "od": "16->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 2.025,
+          "min_cost_gap": 2.025,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.033,
+        "p75": 0.21,
+        "p90": 0.718,
+        "p95": 1.287,
+        "max": 6.475
+      }
+    },
+    {
+      "iteration": 23,
+      "global_avg_cost_gap": 0.2951337244400813,
+      "od_level_max_avg_gap": 9.259,
+      "od_level_avg_of_avg_gap": 0.414,
+      "od_level_max_of_max_gap": 10.475,
+      "total_route_switches": 43,
+      "n_od_pairs": 479,
+      "n_high_gap_ods": 60,
+      "high_gap_ods": [
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 9.259,
+          "max_cost_gap": 9.259,
+          "min_cost_gap": 9.259,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.175,
+          "max_cost_gap": 5.175,
+          "min_cost_gap": 5.175,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 5.014,
+          "max_cost_gap": 10.027,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 5.014
+        },
+        {
+          "od": "20->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.013,
+          "max_cost_gap": 5.013,
+          "min_cost_gap": 5.013,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.95,
+          "max_cost_gap": 4.95,
+          "min_cost_gap": 4.95,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 4.95,
+          "max_cost_gap": 9.475,
+          "min_cost_gap": 0.425,
+          "std_cost_gap": 4.525
+        },
+        {
+          "od": "4->6",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 4.05,
+          "max_cost_gap": 8.1,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 4.05
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.875,
+          "max_cost_gap": 3.875,
+          "min_cost_gap": 3.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.825,
+          "max_cost_gap": 3.825,
+          "min_cost_gap": 3.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.825,
+          "max_cost_gap": 3.825,
+          "min_cost_gap": 3.825,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.266,
+        "p90": 1.337,
+        "p95": 2.368,
+        "max": 9.259
+      }
+    },
+    {
+      "iteration": 24,
+      "global_avg_cost_gap": 0.1751211584333894,
+      "od_level_max_avg_gap": 5.425,
+      "od_level_avg_of_avg_gap": 0.221,
+      "od_level_max_of_max_gap": 6.1,
+      "total_route_switches": 51,
+      "n_od_pairs": 513,
+      "n_high_gap_ods": 32,
+      "high_gap_ods": [
+        {
+          "od": "23->15",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.425,
+          "max_cost_gap": 5.425,
+          "min_cost_gap": 5.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.25,
+          "max_cost_gap": 4.25,
+          "min_cost_gap": 4.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.413,
+          "max_cost_gap": 6.0,
+          "min_cost_gap": 0.825,
+          "std_cost_gap": 2.587
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.15,
+          "max_cost_gap": 3.15,
+          "min_cost_gap": 3.15,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.6,
+          "max_cost_gap": 2.6,
+          "min_cost_gap": 2.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.55,
+          "max_cost_gap": 2.55,
+          "min_cost_gap": 2.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.242,
+          "max_cost_gap": 5.475,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.343
+        },
+        {
+          "od": "8->4",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 2.156,
+          "max_cost_gap": 5.05,
+          "min_cost_gap": 0.075,
+          "std_cost_gap": 2.14
+        },
+        {
+          "od": "23->1",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.712,
+          "max_cost_gap": 6.075,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.538
+        },
+        {
+          "od": "3->15",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.675,
+          "max_cost_gap": 1.675,
+          "min_cost_gap": 1.675,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.032,
+        "p75": 0.211,
+        "p90": 0.622,
+        "p95": 1.074,
+        "max": 5.425
+      }
+    },
+    {
+      "iteration": 25,
+      "global_avg_cost_gap": 0.15019924669698617,
+      "od_level_max_avg_gap": 3.609,
+      "od_level_avg_of_avg_gap": 0.165,
+      "od_level_max_of_max_gap": 4.95,
+      "total_route_switches": 34,
+      "n_od_pairs": 473,
+      "n_high_gap_ods": 20,
+      "high_gap_ods": [
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.609,
+          "max_cost_gap": 3.609,
+          "min_cost_gap": 3.609,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.8,
+          "max_cost_gap": 2.8,
+          "min_cost_gap": 2.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.675,
+          "max_cost_gap": 2.675,
+          "min_cost_gap": 2.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->6",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.582,
+          "max_cost_gap": 4.95,
+          "min_cost_gap": 0.214,
+          "std_cost_gap": 2.368
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.276,
+          "max_cost_gap": 4.552,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.276
+        },
+        {
+          "od": "12->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.25,
+          "max_cost_gap": 2.25,
+          "min_cost_gap": 2.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->23",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.938,
+          "max_cost_gap": 3.875,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.938
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.763,
+          "max_cost_gap": 4.3,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.846
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.675,
+          "max_cost_gap": 1.675,
+          "min_cost_gap": 1.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->6",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 1.42,
+          "max_cost_gap": 3.35,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.306
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.131,
+        "p90": 0.413,
+        "p95": 0.89,
+        "max": 3.609
+      }
+    },
+    {
+      "iteration": 26,
+      "global_avg_cost_gap": 0.2089501577887514,
+      "od_level_max_avg_gap": 6.35,
+      "od_level_avg_of_avg_gap": 0.287,
+      "od_level_max_of_max_gap": 7.152,
+      "total_route_switches": 27,
+      "n_od_pairs": 478,
+      "n_high_gap_ods": 38,
+      "high_gap_ods": [
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.35,
+          "max_cost_gap": 6.35,
+          "min_cost_gap": 6.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 6.025,
+          "max_cost_gap": 6.025,
+          "min_cost_gap": 6.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.4,
+          "max_cost_gap": 5.4,
+          "min_cost_gap": 5.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.975,
+          "max_cost_gap": 4.975,
+          "min_cost_gap": 4.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.8,
+          "max_cost_gap": 3.8,
+          "min_cost_gap": 3.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->4",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.7,
+          "max_cost_gap": 3.7,
+          "min_cost_gap": 3.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.625,
+          "max_cost_gap": 3.625,
+          "min_cost_gap": 3.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.576,
+          "max_cost_gap": 7.152,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.576
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.275,
+          "max_cost_gap": 6.3,
+          "min_cost_gap": 0.25,
+          "std_cost_gap": 3.025
+        },
+        {
+          "od": "22->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.137,
+          "max_cost_gap": 6.275,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.137
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.175,
+        "p90": 0.835,
+        "p95": 1.375,
+        "max": 6.35
+      }
+    },
+    {
+      "iteration": 27,
+      "global_avg_cost_gap": 0.22400764396324974,
+      "od_level_max_avg_gap": 5.759,
+      "od_level_avg_of_avg_gap": 0.289,
+      "od_level_max_of_max_gap": 7.277,
+      "total_route_switches": 42,
+      "n_od_pairs": 503,
+      "n_high_gap_ods": 39,
+      "high_gap_ods": [
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.759,
+          "max_cost_gap": 5.759,
+          "min_cost_gap": 5.759,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.65,
+          "max_cost_gap": 5.65,
+          "min_cost_gap": 5.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.575,
+          "max_cost_gap": 4.575,
+          "min_cost_gap": 4.575,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.5,
+          "max_cost_gap": 4.5,
+          "min_cost_gap": 4.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.825,
+          "max_cost_gap": 3.825,
+          "min_cost_gap": 3.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.639,
+          "max_cost_gap": 7.277,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.639
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.4,
+          "max_cost_gap": 3.4,
+          "min_cost_gap": 3.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.8,
+          "max_cost_gap": 2.8,
+          "min_cost_gap": 2.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.775,
+          "max_cost_gap": 5.2,
+          "min_cost_gap": 0.35,
+          "std_cost_gap": 2.425
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 2.5,
+          "max_cost_gap": 6.05,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.327
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.262,
+        "p90": 0.829,
+        "p95": 1.585,
+        "max": 5.759
+      }
+    },
+    {
+      "iteration": 28,
+      "global_avg_cost_gap": 0.11737792256862245,
+      "od_level_max_avg_gap": 4.6,
+      "od_level_avg_of_avg_gap": 0.141,
+      "od_level_max_of_max_gap": 4.775,
+      "total_route_switches": 46,
+      "n_od_pairs": 493,
+      "n_high_gap_ods": 10,
+      "high_gap_ods": [
+        {
+          "od": "23->15",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.6,
+          "max_cost_gap": 4.6,
+          "min_cost_gap": 4.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.787,
+          "max_cost_gap": 3.525,
+          "min_cost_gap": 0.05,
+          "std_cost_gap": 1.737
+        },
+        {
+          "od": "10->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.65,
+          "max_cost_gap": 1.65,
+          "min_cost_gap": 1.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.226,
+          "max_cost_gap": 2.452,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.226
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.175,
+          "max_cost_gap": 1.175,
+          "min_cost_gap": 1.175,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->8",
+          "type": "uncharging",
+          "n_vehicles": 10,
+          "avg_cost_gap": 1.158,
+          "max_cost_gap": 4.775,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.783
+        },
+        {
+          "od": "4->13",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.067,
+          "max_cost_gap": 2.975,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.353
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.056,
+          "max_cost_gap": 2.35,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.07
+        },
+        {
+          "od": "20->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.05,
+          "max_cost_gap": 1.05,
+          "min_cost_gap": 1.05,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->15",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.025,
+          "max_cost_gap": 2.45,
+          "min_cost_gap": 0.2,
+          "std_cost_gap": 1.012
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.134,
+        "p90": 0.45,
+        "p95": 0.678,
+        "max": 4.6
+      }
+    },
+    {
+      "iteration": 29,
+      "global_avg_cost_gap": 0.127698915874499,
+      "od_level_max_avg_gap": 3.65,
+      "od_level_avg_of_avg_gap": 0.162,
+      "od_level_max_of_max_gap": 5.65,
+      "total_route_switches": 30,
+      "n_od_pairs": 479,
+      "n_high_gap_ods": 15,
+      "high_gap_ods": [
+        {
+          "od": "10->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.65,
+          "max_cost_gap": 3.65,
+          "min_cost_gap": 3.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.0,
+          "max_cost_gap": 3.0,
+          "min_cost_gap": 3.0,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.689,
+          "max_cost_gap": 5.377,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.689
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 2.205,
+          "max_cost_gap": 5.575,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.095
+        },
+        {
+          "od": "8->4",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 5.225,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.231
+        },
+        {
+          "od": "17->11",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 2.15,
+          "min_cost_gap": 2.15,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->19",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.038,
+          "max_cost_gap": 4.075,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.038
+        },
+        {
+          "od": "19->23",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.034,
+          "max_cost_gap": 2.034,
+          "min_cost_gap": 2.034,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.35,
+          "max_cost_gap": 1.35,
+          "min_cost_gap": 1.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->13",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.324,
+          "max_cost_gap": 3.6,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.616
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.021,
+        "p75": 0.15,
+        "p90": 0.461,
+        "p95": 0.688,
+        "max": 3.65
+      }
+    },
+    {
+      "iteration": 30,
+      "global_avg_cost_gap": 0.15347039466538187,
+      "od_level_max_avg_gap": 3.675,
+      "od_level_avg_of_avg_gap": 0.186,
+      "od_level_max_of_max_gap": 5.625,
+      "total_route_switches": 57,
+      "n_od_pairs": 517,
+      "n_high_gap_ods": 23,
+      "high_gap_ods": [
+        {
+          "od": "23->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.675,
+          "max_cost_gap": 3.675,
+          "min_cost_gap": 3.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->7",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.25,
+          "max_cost_gap": 3.25,
+          "min_cost_gap": 3.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->19",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.625,
+          "max_cost_gap": 2.625,
+          "min_cost_gap": 2.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.45,
+          "max_cost_gap": 2.45,
+          "min_cost_gap": 2.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.45,
+          "max_cost_gap": 2.45,
+          "min_cost_gap": 2.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.925,
+          "max_cost_gap": 1.925,
+          "min_cost_gap": 1.925,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.9,
+          "max_cost_gap": 1.9,
+          "min_cost_gap": 1.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 5.625,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.284
+        },
+        {
+          "od": "16->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.55,
+          "max_cost_gap": 1.55,
+          "min_cost_gap": 1.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.325,
+          "max_cost_gap": 1.325,
+          "min_cost_gap": 1.325,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.18,
+        "p90": 0.52,
+        "p95": 0.88,
+        "max": 3.675
+      }
+    },
+    {
+      "iteration": 31,
+      "global_avg_cost_gap": 0.19939462511986072,
+      "od_level_max_avg_gap": 5.9,
+      "od_level_avg_of_avg_gap": 0.256,
+      "od_level_max_of_max_gap": 7.824,
+      "total_route_switches": 52,
+      "n_od_pairs": 521,
+      "n_high_gap_ods": 34,
+      "high_gap_ods": [
+        {
+          "od": "16->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.9,
+          "max_cost_gap": 5.9,
+          "min_cost_gap": 5.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.85,
+          "max_cost_gap": 5.85,
+          "min_cost_gap": 5.85,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.8,
+          "max_cost_gap": 5.8,
+          "min_cost_gap": 5.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.6,
+          "max_cost_gap": 5.6,
+          "min_cost_gap": 5.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.875,
+          "max_cost_gap": 3.875,
+          "min_cost_gap": 3.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.877,
+          "max_cost_gap": 5.654,
+          "min_cost_gap": 0.1,
+          "std_cost_gap": 2.777
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.825,
+          "max_cost_gap": 2.825,
+          "min_cost_gap": 2.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->19",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.412,
+          "max_cost_gap": 3.525,
+          "min_cost_gap": 1.3,
+          "std_cost_gap": 1.113
+        },
+        {
+          "od": "15->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 2.025,
+          "min_cost_gap": 2.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.016,
+          "max_cost_gap": 5.8,
+          "min_cost_gap": 0.1,
+          "std_cost_gap": 2.676
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.237,
+        "p90": 0.724,
+        "p95": 1.124,
+        "max": 5.9
+      }
+    },
+    {
+      "iteration": 32,
+      "global_avg_cost_gap": 0.15409866595110522,
+      "od_level_max_avg_gap": 3.65,
+      "od_level_avg_of_avg_gap": 0.205,
+      "od_level_max_of_max_gap": 5.425,
+      "total_route_switches": 40,
+      "n_od_pairs": 544,
+      "n_high_gap_ods": 25,
+      "high_gap_ods": [
+        {
+          "od": "2->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.65,
+          "max_cost_gap": 3.65,
+          "min_cost_gap": 3.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->7",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.575,
+          "max_cost_gap": 5.15,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.575
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.375,
+          "max_cost_gap": 2.375,
+          "min_cost_gap": 2.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.375,
+          "max_cost_gap": 2.375,
+          "min_cost_gap": 2.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.225,
+          "max_cost_gap": 2.225,
+          "min_cost_gap": 2.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 2.025,
+          "min_cost_gap": 2.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.975,
+          "max_cost_gap": 1.975,
+          "min_cost_gap": 1.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->15",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.85,
+          "max_cost_gap": 3.325,
+          "min_cost_gap": 0.3,
+          "std_cost_gap": 1.236
+        },
+        {
+          "od": "3->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.825,
+          "max_cost_gap": 1.825,
+          "min_cost_gap": 1.825,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.032,
+        "p75": 0.19,
+        "p90": 0.626,
+        "p95": 0.959,
+        "max": 3.65
+      }
+    },
+    {
+      "iteration": 33,
+      "global_avg_cost_gap": 0.1988622916579995,
+      "od_level_max_avg_gap": 5.875,
+      "od_level_avg_of_avg_gap": 0.254,
+      "od_level_max_of_max_gap": 8.025,
+      "total_route_switches": 48,
+      "n_od_pairs": 519,
+      "n_high_gap_ods": 35,
+      "high_gap_ods": [
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.875,
+          "max_cost_gap": 5.875,
+          "min_cost_gap": 5.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "2->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.625,
+          "max_cost_gap": 5.625,
+          "min_cost_gap": 5.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.6,
+          "max_cost_gap": 5.6,
+          "min_cost_gap": 5.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.25,
+          "max_cost_gap": 5.25,
+          "min_cost_gap": 5.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.225,
+          "max_cost_gap": 4.225,
+          "min_cost_gap": 4.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->23",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.975,
+          "max_cost_gap": 5.95,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.975
+        },
+        {
+          "od": "16->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.525,
+          "max_cost_gap": 4.725,
+          "min_cost_gap": 0.325,
+          "std_cost_gap": 2.2
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.425,
+          "max_cost_gap": 2.425,
+          "min_cost_gap": 2.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.3,
+          "max_cost_gap": 2.3,
+          "min_cost_gap": 2.3,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.25,
+          "max_cost_gap": 6.75,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.182
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.164,
+        "p90": 0.778,
+        "p95": 1.226,
+        "max": 5.875
+      }
+    },
+    {
+      "iteration": 34,
+      "global_avg_cost_gap": 0.16146372173625634,
+      "od_level_max_avg_gap": 4.6,
+      "od_level_avg_of_avg_gap": 0.224,
+      "od_level_max_of_max_gap": 5.5,
+      "total_route_switches": 49,
+      "n_od_pairs": 559,
+      "n_high_gap_ods": 31,
+      "high_gap_ods": [
+        {
+          "od": "23->2",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.6,
+          "max_cost_gap": 4.6,
+          "min_cost_gap": 4.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->7",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.925,
+          "max_cost_gap": 2.925,
+          "min_cost_gap": 2.925,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.75,
+          "max_cost_gap": 2.75,
+          "min_cost_gap": 2.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 2.15,
+          "min_cost_gap": 2.15,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.125,
+          "max_cost_gap": 2.125,
+          "min_cost_gap": 2.125,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.0,
+          "max_cost_gap": 2.0,
+          "min_cost_gap": 2.0,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "17->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.925,
+          "max_cost_gap": 1.925,
+          "min_cost_gap": 1.925,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "6->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.85,
+          "max_cost_gap": 1.85,
+          "min_cost_gap": 1.85,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.65,
+          "max_cost_gap": 3.3,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.65
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.039,
+        "p75": 0.242,
+        "p90": 0.662,
+        "p95": 1.053,
+        "max": 4.6
+      }
+    },
+    {
+      "iteration": 35,
+      "global_avg_cost_gap": 0.13133441620515732,
+      "od_level_max_avg_gap": 2.875,
+      "od_level_avg_of_avg_gap": 0.158,
+      "od_level_max_of_max_gap": 5.325,
+      "total_route_switches": 44,
+      "n_od_pairs": 505,
+      "n_high_gap_ods": 14,
+      "high_gap_ods": [
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.875,
+          "max_cost_gap": 2.875,
+          "min_cost_gap": 2.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->22",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.675,
+          "max_cost_gap": 2.675,
+          "min_cost_gap": 2.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.662,
+          "max_cost_gap": 5.325,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.662
+        },
+        {
+          "od": "14->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.475,
+          "max_cost_gap": 2.475,
+          "min_cost_gap": 2.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.475,
+          "max_cost_gap": 1.475,
+          "min_cost_gap": 1.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "9->5",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.475,
+          "max_cost_gap": 3.85,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.696
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.443,
+          "max_cost_gap": 4.325,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.038
+        },
+        {
+          "od": "16->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.425,
+          "max_cost_gap": 1.425,
+          "min_cost_gap": 1.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.375,
+          "max_cost_gap": 1.375,
+          "min_cost_gap": 1.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 1.305,
+          "max_cost_gap": 5.2,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.014
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.175,
+        "p90": 0.451,
+        "p95": 0.699,
+        "max": 2.875
+      }
+    },
+    {
+      "iteration": 36,
+      "global_avg_cost_gap": 0.14775746930897682,
+      "od_level_max_avg_gap": 4.6,
+      "od_level_avg_of_avg_gap": 0.194,
+      "od_level_max_of_max_gap": 6.675,
+      "total_route_switches": 38,
+      "n_od_pairs": 521,
+      "n_high_gap_ods": 25,
+      "high_gap_ods": [
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.6,
+          "max_cost_gap": 4.6,
+          "min_cost_gap": 4.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.35,
+          "max_cost_gap": 4.35,
+          "min_cost_gap": 4.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "21->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.0,
+          "max_cost_gap": 3.0,
+          "min_cost_gap": 3.0,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->4",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 2.631,
+          "max_cost_gap": 5.35,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.632
+        },
+        {
+          "od": "22->9",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.475,
+          "max_cost_gap": 2.475,
+          "min_cost_gap": 2.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.425,
+          "max_cost_gap": 2.425,
+          "min_cost_gap": 2.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->19",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.388,
+          "max_cost_gap": 4.525,
+          "min_cost_gap": 0.25,
+          "std_cost_gap": 2.138
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.3,
+          "max_cost_gap": 4.125,
+          "min_cost_gap": 0.475,
+          "std_cost_gap": 1.825
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.226,
+          "max_cost_gap": 6.675,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.146
+        },
+        {
+          "od": "19->12",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.737,
+          "max_cost_gap": 3.45,
+          "min_cost_gap": 0.025,
+          "std_cost_gap": 1.712
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.145,
+        "p90": 0.525,
+        "p95": 0.979,
+        "max": 4.6
+      }
+    },
+    {
+      "iteration": 37,
+      "global_avg_cost_gap": 0.12357329661299957,
+      "od_level_max_avg_gap": 3.5,
+      "od_level_avg_of_avg_gap": 0.145,
+      "od_level_max_of_max_gap": 5.375,
+      "total_route_switches": 44,
+      "n_od_pairs": 511,
+      "n_high_gap_ods": 14,
+      "high_gap_ods": [
+        {
+          "od": "2->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.5,
+          "max_cost_gap": 3.5,
+          "min_cost_gap": 3.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.712,
+          "max_cost_gap": 5.35,
+          "min_cost_gap": 0.075,
+          "std_cost_gap": 2.637
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.6,
+          "max_cost_gap": 2.6,
+          "min_cost_gap": 2.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->5",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.425,
+          "max_cost_gap": 2.425,
+          "min_cost_gap": 2.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.25,
+          "max_cost_gap": 2.25,
+          "min_cost_gap": 2.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->12",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.493,
+          "max_cost_gap": 4.325,
+          "min_cost_gap": 0.075,
+          "std_cost_gap": 2.003
+        },
+        {
+          "od": "11->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.425,
+          "max_cost_gap": 1.425,
+          "min_cost_gap": 1.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 1.31,
+          "max_cost_gap": 4.85,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.888
+        },
+        {
+          "od": "16->14",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.2,
+          "max_cost_gap": 1.2,
+          "min_cost_gap": 1.2,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.121,
+        "p90": 0.409,
+        "p95": 0.681,
+        "max": 3.5
+      }
+    },
+    {
+      "iteration": 38,
+      "global_avg_cost_gap": 0.12034136808428474,
+      "od_level_max_avg_gap": 2.4,
+      "od_level_avg_of_avg_gap": 0.146,
+      "od_level_max_of_max_gap": 5.05,
+      "total_route_switches": 51,
+      "n_od_pairs": 520,
+      "n_high_gap_ods": 13,
+      "high_gap_ods": [
+        {
+          "od": "23->7",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.4,
+          "max_cost_gap": 2.4,
+          "min_cost_gap": 2.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.95,
+          "max_cost_gap": 3.625,
+          "min_cost_gap": 0.275,
+          "std_cost_gap": 1.675
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.8,
+          "max_cost_gap": 1.8,
+          "min_cost_gap": 1.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->11",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.787,
+          "max_cost_gap": 3.575,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.787
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.7,
+          "max_cost_gap": 1.7,
+          "min_cost_gap": 1.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.675,
+          "max_cost_gap": 3.35,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.675
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 6,
+          "avg_cost_gap": 1.625,
+          "max_cost_gap": 5.05,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.918
+        },
+        {
+          "od": "5->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.425,
+          "max_cost_gap": 1.425,
+          "min_cost_gap": 1.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->9",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.375,
+          "max_cost_gap": 1.375,
+          "min_cost_gap": 1.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.35,
+          "max_cost_gap": 1.35,
+          "min_cost_gap": 1.35,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.174,
+        "p90": 0.4,
+        "p95": 0.65,
+        "max": 2.4
+      }
+    },
+    {
+      "iteration": 39,
+      "global_avg_cost_gap": 0.13243695405407332,
+      "od_level_max_avg_gap": 3.5,
+      "od_level_avg_of_avg_gap": 0.178,
+      "od_level_max_of_max_gap": 4.75,
+      "total_route_switches": 45,
+      "n_od_pairs": 536,
+      "n_high_gap_ods": 19,
+      "high_gap_ods": [
+        {
+          "od": "23->4",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.5,
+          "max_cost_gap": 3.5,
+          "min_cost_gap": 3.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "17->20",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.35,
+          "max_cost_gap": 2.35,
+          "min_cost_gap": 2.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->2",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.2,
+          "max_cost_gap": 2.2,
+          "min_cost_gap": 2.2,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "7->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.1,
+          "max_cost_gap": 2.1,
+          "min_cost_gap": 2.1,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->20",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.975,
+          "max_cost_gap": 1.975,
+          "min_cost_gap": 1.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->7",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.85,
+          "max_cost_gap": 1.85,
+          "min_cost_gap": 1.85,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "6->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.7,
+          "max_cost_gap": 1.7,
+          "min_cost_gap": 1.7,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.03,
+        "p75": 0.18,
+        "p90": 0.453,
+        "p95": 0.752,
+        "max": 3.5
+      }
+    },
+    {
+      "iteration": 40,
+      "global_avg_cost_gap": 0.16398928243856406,
+      "od_level_max_avg_gap": 5.25,
+      "od_level_avg_of_avg_gap": 0.198,
+      "od_level_max_of_max_gap": 6.975,
+      "total_route_switches": 43,
+      "n_od_pairs": 492,
+      "n_high_gap_ods": 22,
+      "high_gap_ods": [
+        {
+          "od": "9->17",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.25,
+          "max_cost_gap": 5.25,
+          "min_cost_gap": 5.25,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.825,
+          "max_cost_gap": 4.825,
+          "min_cost_gap": 4.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.425,
+          "max_cost_gap": 4.425,
+          "min_cost_gap": 4.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.05,
+          "max_cost_gap": 4.05,
+          "min_cost_gap": 4.05,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.525,
+          "max_cost_gap": 3.525,
+          "min_cost_gap": 3.525,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.25,
+          "max_cost_gap": 6.5,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.25
+        },
+        {
+          "od": "8->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.712,
+          "max_cost_gap": 5.425,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.712
+        },
+        {
+          "od": "16->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.562,
+          "max_cost_gap": 5.1,
+          "min_cost_gap": 0.025,
+          "std_cost_gap": 2.537
+        },
+        {
+          "od": "22->10",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.55,
+          "max_cost_gap": 5.0,
+          "min_cost_gap": 0.1,
+          "std_cost_gap": 2.45
+        },
+        {
+          "od": "5->6",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.242,
+          "max_cost_gap": 3.525,
+          "min_cost_gap": 0.1,
+          "std_cost_gap": 1.524
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.103,
+        "p90": 0.504,
+        "p95": 0.907,
+        "max": 5.25
+      }
+    },
+    {
+      "iteration": 41,
+      "global_avg_cost_gap": 0.1089018600726381,
+      "od_level_max_avg_gap": 4.45,
+      "od_level_avg_of_avg_gap": 0.153,
+      "od_level_max_of_max_gap": 4.875,
+      "total_route_switches": 40,
+      "n_od_pairs": 506,
+      "n_high_gap_ods": 16,
+      "high_gap_ods": [
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.45,
+          "max_cost_gap": 4.45,
+          "min_cost_gap": 4.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.425,
+          "max_cost_gap": 4.425,
+          "min_cost_gap": 4.425,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.85,
+          "max_cost_gap": 3.85,
+          "min_cost_gap": 3.85,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->18",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.825,
+          "max_cost_gap": 2.825,
+          "min_cost_gap": 2.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "1->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.775,
+          "max_cost_gap": 2.775,
+          "min_cost_gap": 2.775,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.8,
+          "max_cost_gap": 1.8,
+          "min_cost_gap": 1.8,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.775,
+          "max_cost_gap": 1.775,
+          "min_cost_gap": 1.775,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.7,
+          "max_cost_gap": 1.7,
+          "min_cost_gap": 1.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.55,
+          "max_cost_gap": 1.55,
+          "min_cost_gap": 1.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->13",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 1.408,
+          "max_cost_gap": 4.175,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.956
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.124,
+        "p90": 0.375,
+        "p95": 0.61,
+        "max": 4.45
+      }
+    },
+    {
+      "iteration": 42,
+      "global_avg_cost_gap": 0.19355754912052076,
+      "od_level_max_avg_gap": 5.075,
+      "od_level_avg_of_avg_gap": 0.276,
+      "od_level_max_of_max_gap": 6.05,
+      "total_route_switches": 68,
+      "n_od_pairs": 559,
+      "n_high_gap_ods": 32,
+      "high_gap_ods": [
+        {
+          "od": "21->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.075,
+          "max_cost_gap": 5.075,
+          "min_cost_gap": 5.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->6",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.725,
+          "max_cost_gap": 3.725,
+          "min_cost_gap": 3.725,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.5,
+          "max_cost_gap": 3.5,
+          "min_cost_gap": 3.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->13",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.225,
+          "max_cost_gap": 3.225,
+          "min_cost_gap": 3.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "22->5",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 3.137,
+          "max_cost_gap": 5.775,
+          "min_cost_gap": 0.5,
+          "std_cost_gap": 2.637
+        },
+        {
+          "od": "13->17",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.05,
+          "max_cost_gap": 3.05,
+          "min_cost_gap": 3.05,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->1",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.975,
+          "max_cost_gap": 2.975,
+          "min_cost_gap": 2.975,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.225,
+          "max_cost_gap": 2.225,
+          "min_cost_gap": 2.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.025,
+          "max_cost_gap": 2.025,
+          "min_cost_gap": 2.025,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.075,
+        "p75": 0.32,
+        "p90": 0.725,
+        "p95": 1.237,
+        "max": 5.075
+      }
+    },
+    {
+      "iteration": 43,
+      "global_avg_cost_gap": 0.16190286509244536,
+      "od_level_max_avg_gap": 4.025,
+      "od_level_avg_of_avg_gap": 0.21,
+      "od_level_max_of_max_gap": 7.15,
+      "total_route_switches": 60,
+      "n_od_pairs": 543,
+      "n_high_gap_ods": 28,
+      "high_gap_ods": [
+        {
+          "od": "16->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.025,
+          "max_cost_gap": 4.025,
+          "min_cost_gap": 4.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->7",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.675,
+          "max_cost_gap": 3.675,
+          "min_cost_gap": 3.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->22",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.9,
+          "max_cost_gap": 5.675,
+          "min_cost_gap": 0.125,
+          "std_cost_gap": 2.775
+        },
+        {
+          "od": "1->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.825,
+          "max_cost_gap": 2.825,
+          "min_cost_gap": 2.825,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.475,
+          "max_cost_gap": 4.95,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.475
+        },
+        {
+          "od": "10->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.4,
+          "max_cost_gap": 2.4,
+          "min_cost_gap": 2.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "18->5",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.35,
+          "max_cost_gap": 2.35,
+          "min_cost_gap": 2.35,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "21->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.325,
+          "max_cost_gap": 2.325,
+          "min_cost_gap": 2.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "6->4",
+          "type": "uncharging",
+          "n_vehicles": 3,
+          "avg_cost_gap": 2.158,
+          "max_cost_gap": 6.475,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 3.052
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 2.15,
+          "min_cost_gap": 2.15,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.192,
+        "p90": 0.6,
+        "p95": 1.039,
+        "max": 4.025
+      }
+    },
+    {
+      "iteration": 44,
+      "global_avg_cost_gap": 0.08909720176782794,
+      "od_level_max_avg_gap": 2.9,
+      "od_level_avg_of_avg_gap": 0.109,
+      "od_level_max_of_max_gap": 4.75,
+      "total_route_switches": 37,
+      "n_od_pairs": 510,
+      "n_high_gap_ods": 10,
+      "high_gap_ods": [
+        {
+          "od": "2->8",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.9,
+          "max_cost_gap": 2.9,
+          "min_cost_gap": 2.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.525,
+          "max_cost_gap": 1.525,
+          "min_cost_gap": 1.525,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.5,
+          "max_cost_gap": 1.5,
+          "min_cost_gap": 1.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.275,
+          "max_cost_gap": 1.275,
+          "min_cost_gap": 1.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "15->8",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 1.22,
+          "max_cost_gap": 4.75,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.841
+        },
+        {
+          "od": "12->15",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.125,
+          "max_cost_gap": 1.125,
+          "min_cost_gap": 1.125,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.1,
+          "max_cost_gap": 1.1,
+          "min_cost_gap": 1.1,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.1,
+          "max_cost_gap": 2.15,
+          "min_cost_gap": 0.05,
+          "std_cost_gap": 1.05
+        },
+        {
+          "od": "12->6",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.075,
+          "max_cost_gap": 1.075,
+          "min_cost_gap": 1.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "19->8",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.063,
+          "max_cost_gap": 2.1,
+          "min_cost_gap": 0.025,
+          "std_cost_gap": 1.037
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.02,
+        "p75": 0.1,
+        "p90": 0.289,
+        "p95": 0.5,
+        "max": 2.9
+      }
+    },
+    {
+      "iteration": 45,
+      "global_avg_cost_gap": 0.12508151853601496,
+      "od_level_max_avg_gap": 3.175,
+      "od_level_avg_of_avg_gap": 0.151,
+      "od_level_max_of_max_gap": 5.35,
+      "total_route_switches": 40,
+      "n_od_pairs": 500,
+      "n_high_gap_ods": 13,
+      "high_gap_ods": [
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.175,
+          "max_cost_gap": 3.175,
+          "min_cost_gap": 3.175,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.725,
+          "max_cost_gap": 2.725,
+          "min_cost_gap": 2.725,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.5,
+          "max_cost_gap": 2.5,
+          "min_cost_gap": 2.5,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.375,
+          "max_cost_gap": 2.375,
+          "min_cost_gap": 2.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.075,
+          "max_cost_gap": 2.075,
+          "min_cost_gap": 2.075,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.888,
+          "max_cost_gap": 3.775,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.888
+        },
+        {
+          "od": "8->4",
+          "type": "uncharging",
+          "n_vehicles": 4,
+          "avg_cost_gap": 1.681,
+          "max_cost_gap": 4.95,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.991
+        },
+        {
+          "od": "16->9",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.662,
+          "max_cost_gap": 3.325,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.662
+        },
+        {
+          "od": "8->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.625,
+          "max_cost_gap": 1.625,
+          "min_cost_gap": 1.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.625,
+          "max_cost_gap": 1.625,
+          "min_cost_gap": 1.625,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.022,
+        "p75": 0.12,
+        "p90": 0.454,
+        "p95": 0.677,
+        "max": 3.175
+      }
+    },
+    {
+      "iteration": 46,
+      "global_avg_cost_gap": 0.11076693876253281,
+      "od_level_max_avg_gap": 1.95,
+      "od_level_avg_of_avg_gap": 0.122,
+      "od_level_max_of_max_gap": 5.7,
+      "total_route_switches": 39,
+      "n_od_pairs": 499,
+      "n_high_gap_ods": 14,
+      "high_gap_ods": [
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.95,
+          "max_cost_gap": 3.875,
+          "min_cost_gap": 0.025,
+          "std_cost_gap": 1.925
+        },
+        {
+          "od": "23->7",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.875,
+          "max_cost_gap": 1.875,
+          "min_cost_gap": 1.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "17->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.65,
+          "max_cost_gap": 1.65,
+          "min_cost_gap": 1.65,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.6,
+          "max_cost_gap": 1.6,
+          "min_cost_gap": 1.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->19",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 1.6,
+          "max_cost_gap": 2.65,
+          "min_cost_gap": 0.55,
+          "std_cost_gap": 1.05
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.475,
+          "max_cost_gap": 1.475,
+          "min_cost_gap": 1.475,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.375,
+          "max_cost_gap": 1.375,
+          "min_cost_gap": 1.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "6->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.275,
+          "max_cost_gap": 1.275,
+          "min_cost_gap": 1.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->3",
+          "type": "uncharging",
+          "n_vehicles": 5,
+          "avg_cost_gap": 1.254,
+          "max_cost_gap": 3.125,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 1.449
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.25,
+          "max_cost_gap": 1.25,
+          "min_cost_gap": 1.25,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.019,
+        "p75": 0.1,
+        "p90": 0.351,
+        "p95": 0.538,
+        "max": 1.95
+      }
+    },
+    {
+      "iteration": 47,
+      "global_avg_cost_gap": 0.15144409069896875,
+      "od_level_max_avg_gap": 4.175,
+      "od_level_avg_of_avg_gap": 0.198,
+      "od_level_max_of_max_gap": 6.775,
+      "total_route_switches": 38,
+      "n_od_pairs": 547,
+      "n_high_gap_ods": 21,
+      "high_gap_ods": [
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.175,
+          "max_cost_gap": 4.175,
+          "min_cost_gap": 4.175,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "2->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.45,
+          "max_cost_gap": 3.45,
+          "min_cost_gap": 3.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.375,
+          "max_cost_gap": 3.375,
+          "min_cost_gap": 3.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.175,
+          "max_cost_gap": 3.175,
+          "min_cost_gap": 3.175,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.95,
+          "max_cost_gap": 2.95,
+          "min_cost_gap": 2.95,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.562,
+          "max_cost_gap": 5.05,
+          "min_cost_gap": 0.075,
+          "std_cost_gap": 2.487
+        },
+        {
+          "od": "3->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.375,
+          "max_cost_gap": 2.375,
+          "min_cost_gap": 2.375,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "14->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.225,
+          "max_cost_gap": 2.225,
+          "min_cost_gap": 2.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.125,
+          "max_cost_gap": 2.125,
+          "min_cost_gap": 2.125,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "1->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.125,
+          "max_cost_gap": 2.125,
+          "min_cost_gap": 2.125,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.164,
+        "p90": 0.516,
+        "p95": 0.916,
+        "max": 4.175
+      }
+    },
+    {
+      "iteration": 48,
+      "global_avg_cost_gap": 0.12181449565435745,
+      "od_level_max_avg_gap": 4.6,
+      "od_level_avg_of_avg_gap": 0.168,
+      "od_level_max_of_max_gap": 5.875,
+      "total_route_switches": 42,
+      "n_od_pairs": 506,
+      "n_high_gap_ods": 17,
+      "high_gap_ods": [
+        {
+          "od": "7->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.6,
+          "max_cost_gap": 4.6,
+          "min_cost_gap": 4.6,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.55,
+          "max_cost_gap": 4.55,
+          "min_cost_gap": 4.55,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.275,
+          "max_cost_gap": 4.275,
+          "min_cost_gap": 4.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.625,
+          "max_cost_gap": 3.625,
+          "min_cost_gap": 3.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.525,
+          "max_cost_gap": 3.525,
+          "min_cost_gap": 3.525,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "8->10",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.4,
+          "max_cost_gap": 3.4,
+          "min_cost_gap": 3.4,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->9",
+          "type": "charging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 2.55,
+          "max_cost_gap": 5.1,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 2.55
+        },
+        {
+          "od": "7->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.275,
+          "max_cost_gap": 2.275,
+          "min_cost_gap": 2.275,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "4->23",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.125,
+          "max_cost_gap": 2.125,
+          "min_cost_gap": 2.125,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->5",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.1,
+          "max_cost_gap": 2.1,
+          "min_cost_gap": 2.1,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.018,
+        "p75": 0.124,
+        "p90": 0.402,
+        "p95": 0.6,
+        "max": 4.6
+      }
+    },
+    {
+      "iteration": 49,
+      "global_avg_cost_gap": 0.26116807431239836,
+      "od_level_max_avg_gap": 10.3,
+      "od_level_avg_of_avg_gap": 0.338,
+      "od_level_max_of_max_gap": 12.525,
+      "total_route_switches": 49,
+      "n_od_pairs": 520,
+      "n_high_gap_ods": 45,
+      "high_gap_ods": [
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 10.3,
+          "max_cost_gap": 10.3,
+          "min_cost_gap": 10.3,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->2",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 10.025,
+          "max_cost_gap": 10.025,
+          "min_cost_gap": 10.025,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->22",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 7.988,
+          "max_cost_gap": 12.075,
+          "min_cost_gap": 3.9,
+          "std_cost_gap": 4.088
+        },
+        {
+          "od": "5->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 5.0,
+          "max_cost_gap": 5.0,
+          "min_cost_gap": 5.0,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "3->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.725,
+          "max_cost_gap": 4.725,
+          "min_cost_gap": 4.725,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "1->12",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.7,
+          "max_cost_gap": 4.7,
+          "min_cost_gap": 4.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->23",
+          "type": "uncharging",
+          "n_vehicles": 2,
+          "avg_cost_gap": 4.688,
+          "max_cost_gap": 9.375,
+          "min_cost_gap": 0.0,
+          "std_cost_gap": 4.688
+        },
+        {
+          "od": "12->3",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.45,
+          "max_cost_gap": 4.45,
+          "min_cost_gap": 4.45,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "13->2",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.325,
+          "max_cost_gap": 4.325,
+          "min_cost_gap": 4.325,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 3.75,
+          "max_cost_gap": 3.75,
+          "min_cost_gap": 3.75,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.15,
+        "p90": 0.827,
+        "p95": 2.002,
+        "max": 10.3
+      }
+    },
+    {
+      "iteration": 50,
+      "global_avg_cost_gap": 0.10504537557792916,
+      "od_level_max_avg_gap": 4.225,
+      "od_level_avg_of_avg_gap": 0.147,
+      "od_level_max_of_max_gap": 4.225,
+      "total_route_switches": 32,
+      "n_od_pairs": 537,
+      "n_high_gap_ods": 14,
+      "high_gap_ods": [
+        {
+          "od": "23->6",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 4.225,
+          "max_cost_gap": 4.225,
+          "min_cost_gap": 4.225,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->2",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.7,
+          "max_cost_gap": 2.7,
+          "min_cost_gap": 2.7,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "11->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 2.15,
+          "min_cost_gap": 2.15,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->21",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 2.15,
+          "max_cost_gap": 2.15,
+          "min_cost_gap": 2.15,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "20->8",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.9,
+          "max_cost_gap": 1.9,
+          "min_cost_gap": 1.9,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "23->4",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.875,
+          "max_cost_gap": 1.875,
+          "min_cost_gap": 1.875,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "16->11",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.75,
+          "max_cost_gap": 1.75,
+          "min_cost_gap": 1.75,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "2->10",
+          "type": "uncharging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.675,
+          "max_cost_gap": 1.675,
+          "min_cost_gap": 1.675,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "5->16",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.625,
+          "max_cost_gap": 1.625,
+          "min_cost_gap": 1.625,
+          "std_cost_gap": 0
+        },
+        {
+          "od": "10->12",
+          "type": "charging",
+          "n_vehicles": 1,
+          "avg_cost_gap": 1.525,
+          "max_cost_gap": 1.525,
+          "min_cost_gap": 1.525,
+          "std_cost_gap": 0
+        }
+      ],
+      "od_gap_distribution": {
+        "p50": 0.025,
+        "p75": 0.122,
+        "p90": 0.386,
+        "p95": 0.683,
+        "max": 4.225
+      }
+    }
+  ],
+  "analysis": {
+    "first_iter_global_avg": 0.29829454896073426,
+    "first_iter_od_max_avg": 4.116,
+    "first_iter_ratio": 13.8,
+    "pseudo_equilibrium": true,
+    "conclusion": "存在伪均衡: 全局avg=0.298看似收敛，但OD级别max_avg=4.116，ratio=13.8x",
+    "convergence_trend": {
+      "global_avg": [
+        0.29829454896073426,
+        0.26764180414594374,
+        0.20193273305300882,
+        0.18354722649219532,
+        0.2638697946075966,
+        0.1678428709471497,
+        0.21518555665550515,
+        0.15578753046795782,
+        0.1242167390476613,
+        0.24041657454464627,
+        0.1957462869659376,
+        0.16825945395013125,
+        0.18799582651836,
+        0.23902686166144052,
+        0.21153017629270307,
+        0.19472254299451824,
+        0.26441575117281313,
+        0.2542267106505637,
+        0.16484637524040277,
+        0.2474284558352897,
+        0.210569727159235,
+        0.22073799031944746,
+        0.2951337244400813,
+        0.1751211584333894,
+        0.15019924669698617,
+        0.2089501577887514,
+        0.22400764396324974,
+        0.11737792256862245,
+        0.127698915874499,
+        0.15347039466538187,
+        0.19939462511986072,
+        0.15409866595110522,
+        0.1988622916579995,
+        0.16146372173625634,
+        0.13133441620515732,
+        0.14775746930897682,
+        0.12357329661299957,
+        0.12034136808428474,
+        0.13243695405407332,
+        0.16398928243856406,
+        0.1089018600726381,
+        0.19355754912052076,
+        0.16190286509244536,
+        0.08909720176782794,
+        0.12508151853601496,
+        0.11076693876253281,
+        0.15144409069896875,
+        0.12181449565435745,
+        0.26116807431239836,
+        0.10504537557792916
+      ],
+      "od_max_avg": [
+        4.116,
+        3.3,
+        2.325,
+        3.25,
+        4.6,
+        4.25,
+        3.438,
+        4.138,
+        3.588,
+        3.65,
+        3.025,
+        4.475,
+        4.375,
+        6.6,
+        6.8,
+        4.9,
+        6.625,
+        7.975,
+        5.05,
+        6.534,
+        5.75,
+        6.475,
+        9.259,
+        5.425,
+        3.609,
+        6.35,
+        5.759,
+        4.6,
+        3.65,
+        3.675,
+        5.9,
+        3.65,
+        5.875,
+        4.6,
+        2.875,
+        4.6,
+        3.5,
+        2.4,
+        3.5,
+        5.25,
+        4.45,
+        5.075,
+        4.025,
+        2.9,
+        3.175,
+        1.95,
+        4.175,
+        4.6,
+        10.3,
+        4.225
+      ]
+    }
+  }
+}

@@ -105,25 +105,54 @@ W.adddemand(orig, dest, start_t, end_t, q * demand_multiplier)
 **分析工具**: `analyze_station_placement.py`
 **可视化输出**: `data/berlin_friedrichshain/station_placement_comparison.png`
 
-### 5.2 UE-DTA 参数调优 (进行中)
+### 5.2 UE-DTA 参数调优 ✅ 已完成
 
-**目标**: 为 BF 网络找到最优的 `time_value_coefficient` 和 `ue_convergence_threshold` 参数。
+**目标**: 确定 `time_value_coefficient` 和 `ue_convergence_threshold` 的合理配置。
 
-**背景**:
-- `time_value_coefficient`: 时间价值系数，影响时间成本与充电成本的平衡
-  - 值太小 → 用户只看价格，位置优势消失
-  - 值太大 → 用户只看时间，价格竞争无效
+#### 5.2.1 参数含义
+
+- `time_value_coefficient`: 时间价值系数（元/秒）
+  - **0.005 元/秒 = 18 元/小时**，对应现实最低时薪标准
+  - 此参数具有现实锚定意义，**不应随意调整**
 - `ue_convergence_threshold`: UE收敛阈值，影响收敛精度与计算时间
+
+#### 5.2.2 测试结果 (2024-12)
 
 **测试工具**: `test_ue_convergence.py`
 
-**参数扫描范围**:
-- `time_value_coefficient`: [0.001, 0.005, 0.01, 0.02, 0.05]
-- `ue_convergence_threshold`: [0.5, 1.0, 2.0]
+**Berlin Friedrichshain 结果** (`time_value_coefficient = 0.005`):
 
-**判断标准**: 时间成本与充电成本比例在 `1:3 ~ 3:1` 范围内较理想。
+| ue_threshold | UE迭代 | 时间成本 | 充电成本 | 比例 | 耗时 |
+|--------------|--------|----------|----------|------|------|
+| 0.5 | 1 | 1.15 | 64.20 | 0.02:1 | 13s |
+| **1.0** | **1** | **1.15** | **64.20** | **0.02:1** | **13s** |
+| 2.0 | 1 | 1.15 | 64.20 | 0.02:1 | 13s |
 
-**当前配置** (待验证):
+**Sioux Falls 结果** (`time_value_coefficient = 0.005`):
+
+| ue_threshold | UE迭代 | 时间成本 | 充电成本 | 比例 | 耗时 |
+|--------------|--------|----------|----------|------|------|
+| 0.5 | 9 | 9.02 | 67.26 | 0.13:1 | 122s |
+| **1.0** | **3** | **9.75** | **68.08** | **0.14:1** | **40s** |
+| 2.0 | 1 | 10.39 | 68.58 | 0.15:1 | 14s |
+
+#### 5.2.3 关键发现
+
+**充电成本主导是合理的**：
+
+| 场景 | 特征 | 博弈意义 |
+|------|------|----------|
+| 时间成本→0 | 所有站点同质 | 纯Bertrand竞争，无差异化 |
+| 时间成本主导 | 位置决定一切 | 空间垄断，价格竞争无效 |
+| **当前(0.02~0.15:1)** | **充电成本主导，时间提供差异化** | **合理的空间差异化竞争** |
+
+- 充电是**刚需**，充电成本（几十元）作为主要决策因素是现实的
+- 时间成本（几元）作为**差异化因素**，不需要与充电成本等量
+- 只要时间成本不为零，空间差异化博弈就有意义
+
+#### 5.2.4 推荐配置
+
+**两个网络统一配置**:
 ```json
 {
     "time_value_coefficient": 0.005,
@@ -132,11 +161,133 @@ W.adddemand(orig, dest, start_t, end_t, q * demand_multiplier)
 }
 ```
 
-**待完成**:
-- [ ] 运行参数扫描测试
-- [ ] 分析时间成本 vs 充电成本比例
-- [ ] 确定推荐参数值
-- [ ] 更新 settings.json
+| 网络 | UE迭代 | 耗时 | 说明 |
+|------|--------|------|------|
+| **Sioux Falls** | 3次 | 40s | 精度与效率平衡 |
+| **Berlin** | 1次 | 13s | 快速收敛 |
+
+**参数选择理由**:
+- `time_value_coefficient = 0.005`: 锚定现实时薪，具有经济学意义
+- `ue_convergence_threshold = 1.0`: 平衡收敛精度与计算效率
+- `charging_demand_per_vehicle = 50`: 反映真实充电需求量级
+
+**已完成**:
+- [x] 运行参数扫描测试
+- [x] 分析时间成本 vs 充电成本比例
+- [x] 确定推荐参数值
+- [x] 确认充电成本主导的合理性
+
+#### 5.2.5 UE-DTA 收敛逻辑分析 🔄 进行中
+
+**问题背景**：BF 网络在 `ue_convergence_threshold = 1.0` 下仅 1 轮 UE-DTA 迭代即判定收敛，需验证是否为"伪均衡"。
+
+**当前收敛逻辑**：
+```python
+# 使用所有车辆的平均 cost_gap 作为收敛判断
+if stats['all_avg_cost_gap'] < self.ue_convergence_threshold:
+    break
+```
+
+**潜在问题**："全局平均"可能掩盖局部不均衡：
+- 90% 车辆已在最优路径（cost_gap=0）
+- 10% 车辆有较大改进空间（cost_gap=5）
+- 全局平均 = 0.5 → 判定收敛，但部分 OD 对未达均衡
+
+**UXSim 原实现对比**：
+- UXSim 的 `SolverDUE.solve()` **不自动判断收敛**，固定运行 `max_iter` 次
+- 仅记录 `t_gap_per_vehicle` 作为监控指标，由用户事后判断
+
+**改进方案选项**：
+
+| 方案 | 收敛条件 | 优点 | 缺点 |
+|------|----------|------|------|
+| A. 按OD分组最大值 | `max(各OD的avg_gap) < 阈值` | 确保每个OD内部均衡 | 可能过严，迭代次数增加 |
+| B. 百分位数 | `P90(all_gaps) < 阈值` | 容忍少数离群值 | 需调整阈值 |
+| C. 固定迭代 | 固定5-10次，不自动停止 | 与UXSim一致 | 效率可能降低 |
+
+**分析工具**：`analyze_od_cost_gap.py`
+
+**使用方式**：
+```bash
+# 分析 BF 网络的 OD 级别 cost_gap 分布
+python analyze_od_cost_gap.py --network berlin_friedrichshain --iterations 10
+
+# 分析 SF 网络
+python analyze_od_cost_gap.py --network siouxfalls --iterations 10
+```
+
+**输出**：`od_cost_gap_analysis_{network}.json`
+
+**关键输出指标**：
+- `global_avg_cost_gap`: 当前使用的全局平均
+- `od_level_max_avg_gap`: 按OD分组后的最大平均值
+- `ratio`: 两者比值，>2-3 说明存在被掩盖的局部不均衡
+- `high_gap_ods`: 持续高 gap 的 OD 对列表
+
+**已完成**：
+- [x] 运行 BF 和 SF 网络的 OD 级别分析
+- [x] 判断是否存在"伪均衡"
+
+#### 5.2.6 分析结果 (2024-12)
+
+**BF vs SF 网络对比**：
+
+| 指标 | Sioux Falls | Berlin |
+|------|-------------|--------|
+| 第1轮 global_avg | 1.505 (>1.0, 不收敛) | 0.298 (<1.0, 判定收敛) |
+| 第1轮 od_max_avg | 17.575 | 4.116 |
+| ratio (od_max/global) | 11.7x | 13.8x |
+| 第50轮 global_avg | 0.107 | 0.105 |
+| 第50轮 od_max_avg | **2.425** (下降) | **2.4~9.3** (波动) |
+
+**关键发现**：
+- **BF存在伪均衡**：global_avg=0.298看似收敛，但od_max_avg=4.116，ratio=13.8x
+- **SF能真正收敛**：od_max_avg从17.6稳定下降到2.4
+- **BF无法真正收敛**：od_max_avg在4-9之间波动，管状路网特征导致部分OD无法改善
+
+#### 5.2.7 改进方案设计
+
+**问题根源**：当前使用**绝对成本差**（元），不同网络成本量级不同，同一阈值效果差异大。
+
+**方案对比**：
+
+| 方案 | 描述 | 优点 | 缺点 |
+|------|------|------|------|
+| A. 加min_iterations | 至少迭代N轮再判断收敛 | 简单，改动小 | 治标不治本 |
+| B. 按OD分组最大值 | `max(各OD的avg_gap) < 阈值` | 确保局部均衡 | BF永不收敛 |
+| **C. 相对成本差** | `(current-best)/current < 阈值%` | 尺度无关，跨网络通用 | 改动较大 |
+
+**推荐方案C：相对成本差（百分比）**
+
+```python
+# 当前：绝对成本差
+cost_gap = current_cost - best_cost  # 单位：元
+
+# 改为：相对成本差
+relative_gap = (current_cost - best_cost) / current_cost  # 单位：%
+```
+
+**优势**：
+- **尺度不变性**：0-100%统一范围，不依赖成本量级
+- **跨网络可比**：BF和SF可使用同一阈值
+- **物理意义清晰**："还能省X%"比"还能省X元"更直观
+
+**阈值建议**：
+- 5% = 宽松（快速收敛）
+- 2% = 适中（推荐）
+- 1% = 严格（更多迭代）
+
+**收敛条件**：
+```python
+avg_relative_gap = mean((current - best) / current for all vehicles)
+if avg_relative_gap < 0.02:  # 平均改进空间 < 2%
+    converged = True
+```
+
+**待完成**：
+- [ ] 实现相对成本差计算
+- [ ] 测试新阈值在BF和SF上的效果
+- [ ] 更新settings.json配置格式
 
 ---
 
