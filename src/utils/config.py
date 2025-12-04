@@ -164,6 +164,17 @@ PROFILE_BERLIN = ScenarioProfile(
     stable_episodes_required=3,
 )
 
+# Anaheim: 超大网络 (40个充电站)
+PROFILE_ANAHEIM = ScenarioProfile(
+    network_dir='data/anaheim',
+    network_name='anaheim',
+    max_episodes=10,
+    max_steps_per_episode=1000,
+    convergence_threshold=0.01,
+    stable_steps_required=5,
+    stable_episodes_required=3,
+)
+
 
 @dataclass
 class ExperimentTask:
