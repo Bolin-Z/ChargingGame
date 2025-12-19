@@ -52,7 +52,9 @@
     "routes_per_od": 10,
     "time_value_coefficient": 0.005,
     "charging_demand_per_vehicle": 50,
-    "ue_convergence_threshold": 0.02,
+    "ue_convergence_threshold": 0.03,
+    "ue_convergence_stable_rounds": 3,
     "ue_max_iterations": 100,
-    "ue_swap_probability": 0.05
+    "ue_switch_gamma": 15.0,
+    "ue_switch_alpha": 0.08
 }

@@ -95,7 +95,7 @@ class MetricsAnalysisEnv(EVCSChargingGameEnv):
 
                 # 执行路径切换并获取统计信息
                 stats, new_routes, charging_flows = self._EVCSChargingGameEnv__route_choice_update(
-                    W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified
+                    W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified, iteration
                 )
 
                 # 记录三种指标

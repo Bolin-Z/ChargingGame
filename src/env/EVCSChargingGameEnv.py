@@ -291,10 +291,13 @@ class EVCSChargingGameEnv(ParallelEnv):
             self.charging_demand_per_vehicle = settings["charging_demand_per_vehicle"]
             # UE-DTA 收敛阈值
             self.ue_convergence_threshold = settings["ue_convergence_threshold"]
+            # UE-DTA 连续收敛轮数要求
+            self.ue_convergence_stable_rounds = settings["ue_convergence_stable_rounds"]
             # UE-DTA 最大迭代次数
             self.ue_max_iterations = settings["ue_max_iterations"]
-            # UE-DTA 交换概率
-            self.ue_swap_probability = settings["ue_swap_probability"]
+            # UE-DTA 切换参数（方案C：Gap敏感 + 时间衰减）
+            self.ue_switch_gamma = settings["ue_switch_gamma"]  # Gap敏感度系数
+            self.ue_switch_alpha = settings["ue_switch_alpha"]  # 时间衰减速率
 
     def __load_network(self, network_dir: str, network_name: str):
         """ 加载路网 """
@@ -916,16 +919,21 @@ class EVCSChargingGameEnv(ParallelEnv):
         
         return time_cost + charging_cost
 
-    def __route_choice_update(self, W: World, dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, current_routes_specified: Dict[str, list]) -> tuple[Dict[str, float], Dict[str, list], np.ndarray]:
+    def __route_choice_update(self, W: World, dict_od_to_charging_vehid: defaultdict, dict_od_to_uncharging_vehid: defaultdict, current_routes_specified: Dict[str, list], iteration: int) -> tuple[Dict[str, float], Dict[str, list], np.ndarray]:
         """
         执行路径选择与切换逻辑，返回统计信息、新路径分配和充电流量统计
-        
+
+        使用方案C切换机制：P_switch = min(1, gamma * gap_rel) / (1 + alpha * n)
+        - Gap敏感：差距大时切换概率高
+        - 时间衰减：随迭代进行切换概率降低
+
         Args:
             W: World实例（通过monkey patch增强）
             dict_od_to_charging_vehid: 充电车辆的OD映射
             dict_od_to_uncharging_vehid: 非充电车辆的OD映射
             current_routes_specified: 当前路径分配
-            
+            iteration: 当前UE-DTA迭代轮数（从0开始）
+
         Returns:
             tuple: (统计信息字典, 新路径分配字典, 充电流量矩阵)
         """
@@ -990,14 +998,20 @@ class EVCSChargingGameEnv(ParallelEnv):
                     relative_gap = 0.0
                 charging_relative_gaps.append((od_pair, relative_gap))
 
-                # 路径切换决策（仍使用绝对成本差判断是否有改进空间）
-                cost_gap = current_cost - best_cost
-                if cost_gap > 0 and np.random.random() < self.ue_swap_probability:
-                    new_routes_specified[veh_id] = best_route
-                    charging_route_switches += 1
+                # 路径切换决策（方案C：Gap敏感 + 时间衰减）
+                # P_switch = min(1, gamma * gap_rel) / (1 + alpha * n)
+                if relative_gap > 0:
+                    gap_factor = min(1.0, self.ue_switch_gamma * relative_gap)
+                    decay_factor = 1.0 / (1.0 + self.ue_switch_alpha * iteration)
+                    switch_prob = gap_factor * decay_factor
+                    if np.random.random() < switch_prob:
+                        new_routes_specified[veh_id] = best_route
+                        charging_route_switches += 1
+                    else:
+                        new_routes_specified[veh_id] = current_route
                 else:
                     new_routes_specified[veh_id] = current_route
-        
+
         # 为非充电车辆执行路径选择
         for od_pair, veh_ids in dict_od_to_uncharging_vehid.items():
             available_routes = self.dict_od_to_routes["uncharging"][od_pair]
@@ -1040,14 +1054,20 @@ class EVCSChargingGameEnv(ParallelEnv):
                     relative_gap = 0.0
                 uncharging_relative_gaps.append((od_pair, relative_gap))
 
-                # 路径切换决策（仍使用绝对成本差判断是否有改进空间）
-                cost_gap = current_cost - best_cost
-                if cost_gap > 0 and np.random.random() < self.ue_swap_probability:
-                    new_routes_specified[veh_id] = best_route
-                    uncharging_route_switches += 1
+                # 路径切换决策（方案C：Gap敏感 + 时间衰减）
+                # P_switch = min(1, gamma * gap_rel) / (1 + alpha * n)
+                if relative_gap > 0:
+                    gap_factor = min(1.0, self.ue_switch_gamma * relative_gap)
+                    decay_factor = 1.0 / (1.0 + self.ue_switch_alpha * iteration)
+                    switch_prob = gap_factor * decay_factor
+                    if np.random.random() < switch_prob:
+                        new_routes_specified[veh_id] = best_route
+                        uncharging_route_switches += 1
+                    else:
+                        new_routes_specified[veh_id] = current_route
                 else:
                     new_routes_specified[veh_id] = current_route
-        
+
         # 计算相对成本差的聚合指标
         def compute_relative_gap_stats(relative_gaps_with_od: list) -> dict:
             """
@@ -1156,9 +1176,10 @@ class EVCSChargingGameEnv(ParallelEnv):
         # Day-to-day迭代求解
         final_charging_flows = None
         final_stats = None
-        
+        ue_convergence_counter = 0  # 连续收敛计数器
+
         # 使用tqdm显示进度（简化输出）
-        with tqdm(range(self.ue_max_iterations), desc="UE-DTA求解", leave=False, 
+        with tqdm(range(self.ue_max_iterations), desc="UE-DTA求解", leave=False,
                   bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]', dynamic_ncols=True) as pbar:
             for iteration in pbar:
                 # 创建新的仿真实例
@@ -1171,7 +1192,7 @@ class EVCSChargingGameEnv(ParallelEnv):
                 W.exec_simulation()
                 
                 # 计算成本差并执行路径切换，同时获取充电流量和统计信息
-                stats, new_routes_specified, charging_flows = self.__route_choice_update(W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified)
+                stats, new_routes_specified, charging_flows = self.__route_choice_update(W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified, iteration)
                 
                 # 保存最终的充电流量和统计信息
                 final_charging_flows = charging_flows
@@ -1190,11 +1211,15 @@ class EVCSChargingGameEnv(ParallelEnv):
                 # 更新路径分配
                 self.current_routes_specified = new_routes_specified
 
-                # 收敛判断：使用全局平均相对成本差
+                # 收敛判断：使用连续N轮全局平均相对成本差低于阈值
                 # ue_convergence_threshold 现在表示相对成本差阈值（如 0.02 = 2%）
                 if stats['all_relative_gap_global_mean'] < self.ue_convergence_threshold:
-                    # 简化收敛输出
-                    break
+                    ue_convergence_counter += 1
+                    if ue_convergence_counter >= self.ue_convergence_stable_rounds:
+                        # 连续N轮收敛，退出
+                        break
+                else:
+                    ue_convergence_counter = 0  # 重置计数器
 
         # 记录最终结果状态（用于外层训练器）
         convergence_status = "收敛" if iteration < self.ue_max_iterations - 1 else "未收敛"
