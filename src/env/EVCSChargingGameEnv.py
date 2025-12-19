@@ -13,7 +13,7 @@ import json
 import csv
 import logging
 
-from uxsim import World
+from uxsim import World, Vehicle
 import networkx as nx
 from itertools import islice
 from math import floor
@@ -21,7 +21,7 @@ import numpy as np
 from tqdm import tqdm
 from pettingzoo import ParallelEnv
 from gymnasium import spaces
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from collections import defaultdict
 
 from .patch import patch_uxsim
@@ -494,39 +494,6 @@ class EVCSChargingGameEnv(ParallelEnv):
             logging.debug(f"\t{route}")
         return routes
 
-    def __init_charging_prices(self, mode="random"):
-        """
-        初始化充电价格
-        
-        Args:
-            mode: 初始化模式，"random"为随机初始化，"midpoint"为中点初始化
-        
-        Returns:
-            np.array(n_agents, n_periods): 初始化的价格矩阵
-        """
-        logging.debug(f"初始化充电价格 (模式: {mode})...")
-        
-        prices = np.zeros((self.n_agents, self.n_periods))
-        
-        for agent_idx, agent in enumerate(self.agents):
-            bounds = self.charging_nodes[agent]
-            min_price, max_price = bounds[0], bounds[1]
-            
-            if mode == "random":
-                # 在价格区间内随机采样
-                for period in range(self.n_periods):
-                    prices[agent_idx, period] = np.random.uniform(min_price, max_price)
-            elif mode == "midpoint":
-                # 初始化为价格区间中点
-                midpoint = (min_price + max_price) / 2.0
-                for period in range(self.n_periods):
-                    prices[agent_idx, period] = midpoint
-            else:
-                raise ValueError(f"不支持的初始化模式: {mode}")
-        
-        logging.debug(f"初始充电价格矩阵:\n{prices}")
-        return prices
-
     def __get_observations(self) -> Dict[str, Dict[str, np.ndarray]]:
         """
         生成所有智能体的观测
@@ -670,12 +637,11 @@ class EVCSChargingGameEnv(ParallelEnv):
         charging_vehicle_objects = 0
         
         for veh in self.W.VEHICLES.values():
-            # 创建增强Vehicle，但不传入预定路径（延迟分配）
-            import uxsim
-            new_veh = uxsim.Vehicle(
-                W, veh.orig.name, veh.dest.name, 
+            # 创建Vehicle（自动注册到World），延迟分配路径
+            Vehicle(
+                W, veh.orig.name, veh.dest.name,
                 veh.departure_time,
-                predefined_route=None,  # 延迟分配路径
+                predefined_route=None,
                 departure_time_is_time_step=True,
                 attribute=veh.attribute.copy()
             )
@@ -812,14 +778,33 @@ class EVCSChargingGameEnv(ParallelEnv):
     def __get_period(self, t: float) -> int:
         """
         获取 t 时刻对应的电价时间段
-        
+
         Args:
             t: 时间戳（秒）
-            
+
         Returns:
             int: 时段索引 [0, n_periods-1]
         """
         return max(0, min(floor(t / self.period_duration), self.n_periods - 1))
+
+    def __compute_relative_gap_stats(self, relative_gaps: list) -> dict:
+        """
+        计算相对成本差的聚合指标
+
+        Args:
+            relative_gaps: List[float] 相对成本差值列表
+
+        Returns:
+            dict: 包含 global_mean, p90, p95 的字典
+        """
+        if not relative_gaps:
+            return {"global_mean": 0.0, "p90": 0.0, "p95": 0.0}
+
+        return {
+            "global_mean": np.mean(relative_gaps),
+            "p90": np.percentile(relative_gaps, 90),
+            "p95": np.percentile(relative_gaps, 95)
+        }
 
     def __get_price(self, t: float, node: str) -> float:
         """
@@ -945,9 +930,8 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 统计信息初始化
         charging_costs = []
         uncharging_costs = []
-        # 存储 (od_pair, relative_gap) 元组，用于按OD分组聚合
-        charging_relative_gaps = []  # List of (od_pair, relative_gap)
-        uncharging_relative_gaps = []  # List of (od_pair, relative_gap)
+        charging_relative_gaps = []  # List[float]: 充电车辆的相对成本差
+        uncharging_relative_gaps = []  # List[float]: 非充电车辆的相对成本差
         charging_route_switches = 0
         uncharging_route_switches = 0
         
@@ -991,14 +975,13 @@ class EVCSChargingGameEnv(ParallelEnv):
                             best_route = route_links
                 
                 # 计算相对成本差: (current - best) / current
-                # 当 current_cost > 0 时计算相对差，否则为 0
                 if current_cost > 0:
                     relative_gap = (current_cost - best_cost) / current_cost
                 else:
                     relative_gap = 0.0
-                charging_relative_gaps.append((od_pair, relative_gap))
+                charging_relative_gaps.append(relative_gap)
 
-                # 路径切换决策（方案C：Gap敏感 + 时间衰减）
+                # 路径切换决策（Gap敏感 + 时间衰减）
                 # P_switch = min(1, gamma * gap_rel) / (1 + alpha * n)
                 if relative_gap > 0:
                     gap_factor = min(1.0, self.ue_switch_gamma * relative_gap)
@@ -1052,9 +1035,9 @@ class EVCSChargingGameEnv(ParallelEnv):
                     relative_gap = (current_cost - best_cost) / current_cost
                 else:
                     relative_gap = 0.0
-                uncharging_relative_gaps.append((od_pair, relative_gap))
+                uncharging_relative_gaps.append(relative_gap)
 
-                # 路径切换决策（方案C：Gap敏感 + 时间衰减）
+                # 路径切换决策（Gap敏感 + 时间衰减）
                 # P_switch = min(1, gamma * gap_rel) / (1 + alpha * n)
                 if relative_gap > 0:
                     gap_factor = min(1.0, self.ue_switch_gamma * relative_gap)
@@ -1068,64 +1051,26 @@ class EVCSChargingGameEnv(ParallelEnv):
                 else:
                     new_routes_specified[veh_id] = current_route
 
-        # 计算相对成本差的聚合指标
-        def compute_relative_gap_stats(relative_gaps_with_od: list) -> dict:
-            """
-            计算相对成本差的三种聚合指标
-
-            Args:
-                relative_gaps_with_od: List of (od_pair, relative_gap) tuples
-
-            Returns:
-                dict: 包含 global_mean, od_max_mean, p95 的字典
-            """
-            if not relative_gaps_with_od:
-                return {"global_mean": 0.0, "od_max_mean": 0.0, "p95": 0.0}
-
-            # 提取所有相对成本差值
-            all_gaps = [gap for _, gap in relative_gaps_with_od]
-
-            # 1. Global Mean: 全局平均
-            global_mean = np.mean(all_gaps)
-
-            # 2. OD-based Max Mean: 按OD分组后取各组平均的最大值
-            od_to_gaps = defaultdict(list)
-            for od_pair, gap in relative_gaps_with_od:
-                od_to_gaps[od_pair].append(gap)
-            od_means = [np.mean(gaps) for gaps in od_to_gaps.values()]
-            od_max_mean = max(od_means) if od_means else 0.0
-
-            # 3. P95: 第95百分位数
-            p95 = np.percentile(all_gaps, 95)
-
-            return {
-                "global_mean": global_mean,
-                "od_max_mean": od_max_mean,
-                "p95": p95
-            }
-
-        # 计算充电车辆的相对成本差统计
-        charging_gap_stats = compute_relative_gap_stats(charging_relative_gaps)
-        # 计算非充电车辆的相对成本差统计
-        uncharging_gap_stats = compute_relative_gap_stats(uncharging_relative_gaps)
-        # 计算全部车辆的相对成本差统计
+        # 计算相对成本差的聚合指标（分别统计充电车辆、非充电车辆、全部车辆）
+        charging_gap_stats = self.__compute_relative_gap_stats(charging_relative_gaps)
+        uncharging_gap_stats = self.__compute_relative_gap_stats(uncharging_relative_gaps)
         all_relative_gaps = charging_relative_gaps + uncharging_relative_gaps
-        all_gap_stats = compute_relative_gap_stats(all_relative_gaps)
+        all_gap_stats = self.__compute_relative_gap_stats(all_relative_gaps)
 
         # 计算统计信息
         stats = {
             "charging_avg_cost": np.mean(charging_costs) if charging_costs else 0.0,
             "uncharging_avg_cost": np.mean(uncharging_costs) if uncharging_costs else 0.0,
             "all_avg_cost": np.mean(charging_costs + uncharging_costs) if (charging_costs or uncharging_costs) else 0.0,
-            # 相对成本差指标（替换原有绝对成本差）
+            # 相对成本差聚合指标
             "charging_relative_gap_global_mean": charging_gap_stats["global_mean"],
-            "charging_relative_gap_od_max_mean": charging_gap_stats["od_max_mean"],
+            "charging_relative_gap_p90": charging_gap_stats["p90"],
             "charging_relative_gap_p95": charging_gap_stats["p95"],
             "uncharging_relative_gap_global_mean": uncharging_gap_stats["global_mean"],
-            "uncharging_relative_gap_od_max_mean": uncharging_gap_stats["od_max_mean"],
+            "uncharging_relative_gap_p90": uncharging_gap_stats["p90"],
             "uncharging_relative_gap_p95": uncharging_gap_stats["p95"],
             "all_relative_gap_global_mean": all_gap_stats["global_mean"],
-            "all_relative_gap_od_max_mean": all_gap_stats["od_max_mean"],
+            "all_relative_gap_p90": all_gap_stats["p90"],
             "all_relative_gap_p95": all_gap_stats["p95"],
             "charging_route_switches": charging_route_switches,
             "uncharging_route_switches": uncharging_route_switches,
@@ -1142,7 +1087,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         }
 
         logging.debug(f"路径选择统计：充电车辆平均成本={stats['charging_avg_cost']:.2f}，非充电车辆平均成本={stats['uncharging_avg_cost']:.2f}")
-        logging.debug(f"相对成本差(%)：全局={all_gap_stats['global_mean']*100:.2f}%, OD最大={all_gap_stats['od_max_mean']*100:.2f}%, P95={all_gap_stats['p95']*100:.2f}%")
+        logging.debug(f"相对成本差(%)：GM={all_gap_stats['global_mean']*100:.2f}%, P90={all_gap_stats['p90']*100:.2f}%, P95={all_gap_stats['p95']*100:.2f}%")
         logging.debug(f"路径切换：充电={stats['charging_route_switches']}次，非充电={stats['uncharging_route_switches']}次")
         
         return stats, new_routes_specified, charging_flows
@@ -1197,16 +1142,13 @@ class EVCSChargingGameEnv(ParallelEnv):
                 # 保存最终的充电流量和统计信息
                 final_charging_flows = charging_flows
                 final_stats = stats
-                
-                # 统计数据已经是实际车辆数（在__route_choice_update中乘以了deltan）
-                actual_completed = int(stats['completed_total_vehicles'])
-                actual_total = int(stats['total_vehicles'])
 
-                # 更新tqdm描述（显示三种相对成本差指标）
+                # 更新tqdm描述（显示相对成本差指标 + 完成率）
                 gap_global = stats['all_relative_gap_global_mean']
-                gap_od_max = stats['all_relative_gap_od_max_mean']
+                gap_p90 = stats['all_relative_gap_p90']
                 gap_p95 = stats['all_relative_gap_p95']
-                pbar.set_description(f"UE-DTA 第{iteration+1}轮 | Gap: 全局={gap_global*100:.1f}% OD最大={gap_od_max*100:.1f}% P95={gap_p95*100:.1f}% | 切换:{stats['total_route_switches']}")
+                completed_ratio = stats['completed_total_vehicles'] / stats['total_vehicles'] if stats['total_vehicles'] > 0 else 0
+                pbar.set_description(f"UE-DTA 第{iteration+1}轮 | 完成率:{completed_ratio*100:.1f}% | Gap: GM={gap_global*100:.1f}% P90={gap_p90*100:.1f}% P95={gap_p95*100:.1f}% | 切换:{stats['total_route_switches']}")
 
                 # 更新路径分配
                 self.current_routes_specified = new_routes_specified
@@ -1224,9 +1166,9 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 记录最终结果状态（用于外层训练器）
         convergence_status = "收敛" if iteration < self.ue_max_iterations - 1 else "未收敛"
         final_gap_global = final_stats['all_relative_gap_global_mean']
-        final_gap_od_max = final_stats['all_relative_gap_od_max_mean']
+        final_gap_p90 = final_stats['all_relative_gap_p90']
         final_gap_p95 = final_stats['all_relative_gap_p95']
-        logging.debug(f"UE-DTA求解完成: {convergence_status} | 相对成本差: 全局={final_gap_global*100:.2f}% OD最大={final_gap_od_max*100:.2f}% P95={final_gap_p95*100:.2f}% | 迭代次数: {iteration+1}")
+        logging.debug(f"UE-DTA求解完成: {convergence_status} | 相对成本差: GM={final_gap_global*100:.2f}% P90={final_gap_p90*100:.2f}% P95={final_gap_p95*100:.2f}% | 迭代次数: {iteration+1}")
         
         # 构建UE统计信息
         ue_info = {
@@ -1236,21 +1178,6 @@ class EVCSChargingGameEnv(ParallelEnv):
         }
         
         return final_charging_flows, ue_info
-    
-    def __display_final_stats(self, stats: Dict[str, float]):
-        """
-        显示最终统计信息表格（简化版本，仅记录到日志）
-        
-        Args:
-            stats: 统计信息字典
-        """
-        # 仅将关键统计信息记录到DEBUG级别日志
-        actual_completed_total = int(stats['completed_total_vehicles'])
-        actual_total = int(stats['total_vehicles'])
-        
-        logging.debug(f"UE-DTA统计: 完成车辆 {actual_completed_total}/{actual_total}, "
-                     f"平均成本 {stats['all_avg_cost']:.2f}, "
-                     f"相对成本差 {stats['all_relative_gap_global_mean']*100:.2f}%")
 
     def __calculate_rewards(self, charging_flows: np.ndarray) -> Dict[str, float]:
         """ 计算奖励：基于充电流量和当前价格计算各agent收益 """
