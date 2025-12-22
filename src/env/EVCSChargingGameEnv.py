@@ -270,7 +270,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             # Platoon 大小（veh代表车辆数）
             self.deltan = settings["deltan"]
             # 需求放大系数（用于调节路网拥堵程度）
-            self.demand_multiplier = settings.get("demand_multiplier", 1.0)
+            self.demand_multiplier = settings["demand_multiplier"]
             # 充电车辆比例
             self.charging_car_rate = settings["charging_car_rate"]
             # 充电链路长度(m)
@@ -296,10 +296,14 @@ class EVCSChargingGameEnv(ParallelEnv):
             # UE-DTA 最大迭代次数
             self.ue_max_iterations = settings["ue_max_iterations"]
             # UE-DTA 切换参数（方案C：Gap敏感 + 时间衰减）
-            self.ue_switch_gamma = settings["ue_switch_gamma"]  # Gap敏感度系数
-            self.ue_switch_alpha = settings["ue_switch_alpha"]  # 时间衰减速率
+            # Gap敏感度系数
+            self.ue_switch_gamma = settings["ue_switch_gamma"]
+            # 时间衰减速率
+            self.ue_switch_alpha = settings["ue_switch_alpha"]
             # UE-DTA 最小完成率约束（防止虚假收敛）
-            self.ue_min_completed_ratio = settings.get("ue_min_completed_ratio", 0.95)
+            self.ue_min_completed_ratio = settings["ue_min_completed_ratio"]
+            # UE-DTA 未完成车辆随机切换概率
+            self.ue_uncompleted_switch_prob = settings["ue_uncompleted_switch_prob"]
 
     def __load_network(self, network_dir: str, network_name: str):
         """ 加载路网 """
@@ -627,7 +631,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             )
             
             # 统计链路类型
-            if link.attribute.get("charging_link", False):
+            if link.attribute["charging_link"]:
                 charging_links_created += 1
             else:
                 normal_links_created += 1
@@ -648,7 +652,7 @@ class EVCSChargingGameEnv(ParallelEnv):
                 attribute=veh.attribute.copy()
             )
             vehicle_objects_created += 1
-            if veh.attribute.get("charging_car", False):
+            if veh.attribute["charging_car"]:
                 charging_vehicle_objects += 1
         
         # 计算实际车辆数
@@ -849,7 +853,7 @@ class EVCSChargingGameEnv(ParallelEnv):
 
         if veh.attribute["charging_car"]:
             for i, link in enumerate(route):
-                if "charging_link" in link.attribute and link.attribute["charging_link"]:
+                if link.attribute["charging_link"]:
                     # 获取进入充电链路的时刻
                     charging_entry_time = timestamps[i]
                     # 从v3.0自环充电链路名称提取充电节点（格式：charging_{node}）
@@ -892,7 +896,7 @@ class EVCSChargingGameEnv(ParallelEnv):
             link_travel_time = link.actual_travel_time(current_time)
             
             # 仅为充电车辆计算充电成本
-            if is_charging_vehicle and "charging_link" in link.attribute and link.attribute["charging_link"]:
+            if is_charging_vehicle and link.attribute["charging_link"]:
                 if link.name.startswith("charging_"):
                     # 从v3.0自环充电链路名称提取充电节点（格式：charging_{node}）
                     charging_node = link.name.split("charging_")[1]
@@ -950,10 +954,23 @@ class EVCSChargingGameEnv(ParallelEnv):
             for veh_id in veh_ids:
                 veh = W.VEHICLES[veh_id]
                 total_charging_vehicles += 1
-                
-                # 跳过未完成行程的车辆
+
+                # 未完成车辆：随机切换到其他路径
                 if veh.state != "end":
-                    new_routes_specified[veh_id] = current_routes_specified[veh_id]
+                    current_route = current_routes_specified[veh_id]
+
+                    # 以一定概率切换到其他路径
+                    if np.random.random() < self.ue_uncompleted_switch_prob:
+                        # 排除当前路径，从其他路径中随机选择
+                        other_routes = [r for r in available_routes if r != current_route]
+                        if other_routes:
+                            new_routes_specified[veh_id] = np.random.choice(len(other_routes))
+                            new_routes_specified[veh_id] = other_routes[new_routes_specified[veh_id]]
+                            charging_route_switches += 1
+                        else:
+                            new_routes_specified[veh_id] = current_route
+                    else:
+                        new_routes_specified[veh_id] = current_route
                     continue
                 
                 completed_charging_vehicles += 1
@@ -1004,10 +1021,23 @@ class EVCSChargingGameEnv(ParallelEnv):
             for veh_id in veh_ids:
                 veh = W.VEHICLES[veh_id]
                 total_uncharging_vehicles += 1
-                
-                # 跳过未完成行程的车辆
+
+                # 未完成车辆：随机切换到其他路径
                 if veh.state != "end":
-                    new_routes_specified[veh_id] = current_routes_specified[veh_id]
+                    current_route = current_routes_specified[veh_id]
+
+                    # 以一定概率切换到其他路径
+                    if np.random.random() < self.ue_uncompleted_switch_prob:
+                        # 排除当前路径，从其他路径中随机选择
+                        other_routes = [r for r in available_routes if r != current_route]
+                        if other_routes:
+                            new_routes_specified[veh_id] = np.random.choice(len(other_routes))
+                            new_routes_specified[veh_id] = other_routes[new_routes_specified[veh_id]]
+                            uncharging_route_switches += 1
+                        else:
+                            new_routes_specified[veh_id] = current_route
+                    else:
+                        new_routes_specified[veh_id] = current_route
                     continue
                 
                 completed_uncharging_vehicles += 1
@@ -1205,6 +1235,3 @@ class EVCSChargingGameEnv(ParallelEnv):
             rewards[agent_name] = total_reward
             
         return rewards
-
-
-

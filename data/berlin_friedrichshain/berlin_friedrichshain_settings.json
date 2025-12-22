@@ -40,5 +40,6 @@
     "ue_max_iterations": 100,
     "ue_min_completed_ratio": 0.95,
     "ue_switch_gamma": 10.0,
-    "ue_switch_alpha": 0.05
+    "ue_switch_alpha": 0.05,
+    "ue_uncompleted_switch_prob": 0.3
 }
