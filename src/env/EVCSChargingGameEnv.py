@@ -298,6 +298,8 @@ class EVCSChargingGameEnv(ParallelEnv):
             # UE-DTA 切换参数（方案C：Gap敏感 + 时间衰减）
             self.ue_switch_gamma = settings["ue_switch_gamma"]  # Gap敏感度系数
             self.ue_switch_alpha = settings["ue_switch_alpha"]  # 时间衰减速率
+            # UE-DTA 最小完成率约束（防止虚假收敛）
+            self.ue_min_completed_ratio = settings.get("ue_min_completed_ratio", 0.95)
 
     def __load_network(self, network_dir: str, network_name: str):
         """ 加载路网 """
@@ -1153,9 +1155,13 @@ class EVCSChargingGameEnv(ParallelEnv):
                 # 更新路径分配
                 self.current_routes_specified = new_routes_specified
 
-                # 收敛判断：使用连续N轮全局平均相对成本差低于阈值
+                # 收敛判断：使用连续N轮全局平均相对成本差低于阈值 + 完成率约束
                 # ue_convergence_threshold 现在表示相对成本差阈值（如 0.02 = 2%）
-                if stats['all_relative_gap_global_mean'] < self.ue_convergence_threshold:
+                # ue_min_completed_ratio 防止虚假收敛（如 0.95 = 95%）
+                gap_converged = stats['all_relative_gap_global_mean'] <= self.ue_convergence_threshold
+                completion_ok = completed_ratio >= self.ue_min_completed_ratio
+
+                if gap_converged and completion_ok:
                     ue_convergence_counter += 1
                     if ue_convergence_counter >= self.ue_convergence_stable_rounds:
                         # 连续N轮收敛，退出
@@ -1168,7 +1174,8 @@ class EVCSChargingGameEnv(ParallelEnv):
         final_gap_global = final_stats['all_relative_gap_global_mean']
         final_gap_p90 = final_stats['all_relative_gap_p90']
         final_gap_p95 = final_stats['all_relative_gap_p95']
-        logging.debug(f"UE-DTA求解完成: {convergence_status} | 相对成本差: GM={final_gap_global*100:.2f}% P90={final_gap_p90*100:.2f}% P95={final_gap_p95*100:.2f}% | 迭代次数: {iteration+1}")
+        final_completed_ratio = final_stats['completed_total_vehicles'] / final_stats['total_vehicles'] if final_stats['total_vehicles'] > 0 else 0
+        logging.debug(f"UE-DTA求解完成: {convergence_status} | 完成率:{final_completed_ratio*100:.1f}% | 相对成本差: GM={final_gap_global*100:.2f}% P90={final_gap_p90*100:.2f}% P95={final_gap_p95*100:.2f}% | 迭代次数: {iteration+1}")
         
         # 构建UE统计信息
         ue_info = {

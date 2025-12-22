@@ -38,6 +38,7 @@
     "ue_convergence_threshold": 0.03,
     "ue_convergence_stable_rounds": 3,
     "ue_max_iterations": 100,
+    "ue_min_completed_ratio": 0.95,
     "ue_switch_gamma": 10.0,
     "ue_switch_alpha": 0.05
 }
