@@ -85,6 +85,9 @@ class EVCSChargingGameEnv(ParallelEnv):
         self.price_history = []  # List[np.array(n_agents, n_periods)]
         self.charging_flow_history = []  # List[np.array(n_agents, n_periods)]
         self.convergence_counter = 0  # 连续收敛步数计数器
+
+        # UE-DTA回调函数（用于实时监控）
+        self._ue_callback = None
     
     @property 
     def possible_agents(self):
@@ -157,11 +160,24 @@ class EVCSChargingGameEnv(ParallelEnv):
         high = np.concatenate([price_high, flow_high, action_high])
         
         return spaces.Box(
-            low=low, 
-            high=high, 
+            low=low,
+            high=high,
             shape=(price_dim + flow_dim + action_dim,),
             dtype=np.float32
         )
+
+    def set_ue_callback(self, callback):
+        """
+        设置UE-DTA迭代回调函数（用于实时监控）
+
+        Args:
+            callback: 回调函数，签名为 callback(iteration, gm, p90, p95)
+                - iteration: 迭代轮次（从0开始）
+                - gm: Global Mean相对成本差
+                - p90: P90相对成本差
+                - p95: P95相对成本差
+        """
+        self._ue_callback = callback
     
     def reset(self, seed: Optional[int] = None, options: Optional[Dict] = None) -> tuple[Dict[str, Any], Dict[str, Any]]:
         """ 重置环境 """
@@ -580,12 +596,12 @@ class EVCSChargingGameEnv(ParallelEnv):
     def __calculate_relative_change_rate(self) -> float:
         """
         计算价格相对变化率
-        
+
         Returns:
-            float: 平均相对变化率，如果价格历史不足则返回正无穷
+            float: 平均相对变化率，如果价格历史不足则返回1.0（表示初始100%变化）
         """
         if len(self.price_history) < 2:
-            return float('inf')
+            return 1.0
             
         # 计算所有智能体价格向量的变化
         current_prices = self.price_history[-1]
@@ -1186,6 +1202,10 @@ class EVCSChargingGameEnv(ParallelEnv):
                 gap_p95 = stats['all_relative_gap_p95']
                 completed_ratio = stats['completed_total_vehicles'] / stats['total_vehicles'] if stats['total_vehicles'] > 0 else 0
                 pbar.set_description(f"UE-DTA 第{iteration+1}轮 | 完成率:{completed_ratio*100:.1f}% | Gap: GM={gap_global*100:.1f}% P90={gap_p90*100:.1f}% P95={gap_p95*100:.1f}% | 切换:{stats['total_route_switches']}")
+
+                # 调用UE-DTA回调（用于实时监控）
+                if self._ue_callback is not None:
+                    self._ue_callback(iteration, gap_global, gap_p90, gap_p95)
 
                 # 更新路径分配
                 self.current_routes_specified = new_routes_specified

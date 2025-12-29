@@ -20,7 +20,7 @@ import sys
 import os
 import numpy as np
 import torch
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple, Any, Optional
 from tqdm import tqdm
 import logging
 import json
@@ -32,7 +32,8 @@ sys.path.insert(0, project_root)
 
 from src.algorithms.mfddpg.mfddpg import MFDDPG
 from src.env.EVCSChargingGameEnv import EVCSChargingGameEnv
-from src.utils.config import ExperimentTask
+from src.utils.config import ExperimentTask, MonitorConfig
+from src.utils.monitor import TrainingMonitor
 
 
 class MFDDPGTrainer:
@@ -45,16 +46,18 @@ class MFDDPGTrainer:
     - UE-DTA层：交通仿真响应
     """
 
-    def __init__(self, task: ExperimentTask):
+    def __init__(self, task: ExperimentTask, monitor_config: Optional[MonitorConfig] = None):
         """
         初始化MFDDPGTrainer
 
         Args:
             task: 实验任务单元，包含场景档案、算法配置和随机种子
+            monitor_config: 可选的监控配置，None则不启用监控
         """
         self.task = task
         self.config = task.scenario
         self.mfddpg_config = task.algo_config
+        self.monitor_config = monitor_config or MonitorConfig(enabled=False)
 
         # 处理设备配置
         if self.config.device == 'auto':
@@ -112,6 +115,20 @@ class MFDDPGTrainer:
         self.episode_lengths = []           # 每个episode的长度
         self.step_records = []              # 每步详细记录（包含所有训练数据）
 
+        # 5. 创建监控器
+        self.monitor = TrainingMonitor(
+            config=self.monitor_config,
+            experiment_name=task.name,
+            n_agents=self.env.n_agents,
+            agent_names=self.env.agents,
+            convergence_threshold=self.config.convergence_threshold,
+            ue_threshold=self.env.ue_convergence_threshold
+        )
+
+        # 6. 设置UE-DTA回调
+        if self.monitor_config.enabled:
+            self.env.set_ue_callback(self.monitor.on_ue_iteration)
+
     def train(self) -> Dict:
         """
         主训练循环：寻找纳什均衡
@@ -127,6 +144,9 @@ class MFDDPGTrainer:
         with tqdm(total=self.config.max_episodes, desc="寻找纳什均衡 (MF-DDPG)", unit="episode", dynamic_ncols=True) as episode_pbar:
 
             for episode in range(self.config.max_episodes):
+
+                # 通知监控器Episode开始
+                self.monitor.on_episode_start(episode)
 
                 # 重新初始化同一博弈（不是新博弈）
                 observations, _ = self.env.reset()
@@ -154,6 +174,9 @@ class MFDDPGTrainer:
 
         # 生成训练结果
         results = self._generate_training_results()
+
+        # 关闭监控器
+        self.monitor.close()
 
         # 自动保存训练数据
         experiment_dir = self.save_training_data()
@@ -200,6 +223,13 @@ class MFDDPGTrainer:
                     'ue_info': infos,
                     'relative_change_rate': infos.get('relative_change_rate', float('inf'))
                 })
+
+                # 通知监控器Step结束
+                self.monitor.on_step_end(
+                    step=step,
+                    convergence_rate=infos.get('relative_change_rate', float('inf')),
+                    rewards=rewards
+                )
 
                 # 检查是否收敛（纳什均衡）
                 if all(terminations.values()):

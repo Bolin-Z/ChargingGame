@@ -17,7 +17,7 @@ project_root = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, project_root)
 
 from src.utils.config import (
-    MADDPGConfig, IDDPGConfig, MFDDPGConfig,
+    MADDPGConfig, IDDPGConfig, MFDDPGConfig, MonitorConfig,
     PROFILE_SIOUXFALLS, PROFILE_BERLIN, PROFILE_ANAHEIM,
     ExperimentTask
 )
@@ -81,6 +81,9 @@ def run_experiment(algo_key: str, scenario_key: str, seed: int):
 
     experiment_id = f"{algo_name}_{scenario.network_name}"
 
+    # 使用config.py中的默认配置
+    monitor_config = MonitorConfig()
+
     print("=" * 60)
     print(f"[{experiment_id}] 启动实验")
     print("=" * 60)
@@ -88,6 +91,7 @@ def run_experiment(algo_key: str, scenario_key: str, seed: int):
     print(f"  场景: {scenario.network_name}")
     print(f"  种子: {seed}")
     print(f"  最大Episodes: {scenario.max_episodes}")
+    print(f"  实时监控: {'启用' if monitor_config.enabled else '禁用'}")
     print("=" * 60)
 
     # 创建实验任务
@@ -101,7 +105,7 @@ def run_experiment(algo_key: str, scenario_key: str, seed: int):
 
     # 获取Trainer并运行
     TrainerClass = get_trainer_class(algo_name)
-    trainer = TrainerClass(task)
+    trainer = TrainerClass(task, monitor_config=monitor_config)
     results = trainer.train()
 
     # 打印结果

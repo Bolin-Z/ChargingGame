@@ -105,6 +105,27 @@ class MFDDPGConfig:
 
 
 @dataclass
+class MonitorConfig:
+    """
+    实时监控配置
+
+    控制训练过程中的实时可视化监控功能。
+    阈值参考线从 ScenarioProfile 和 Env 配置中自动获取。
+    """
+
+    # === 开关控制 ===
+    enabled: bool = True                # 是否启用实时监控（无GUI环境应设为False）
+
+    # === 图表配置 ===
+    figure_size: tuple = (14, 8)         # 图表窗口大小 (宽, 高)
+
+    # === 显示内容控制 ===
+    show_convergence: bool = True        # 显示Step收敛指标
+    show_rewards: bool = True            # 显示智能体收益曲线
+    show_ue_dta: bool = True             # 显示UE-DTA内层迭代（GM/P90/P95）
+
+
+@dataclass
 class ScenarioProfile:
     """
     场景档案 (Scenario Profile)
