@@ -1,0 +1,25 @@
+[build-system]
+requires = [
+  "scikit-build-core>=0.9",
+  "pybind11",
+]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "uxsimpp_extended"
+version = "0.1.0"
+requires-python = ">=3.9"
+description = "UXsim++ Extended: Traffic simulator with predefined route support for charging game"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.21.5",
+    "matplotlib>=3.5.2",
+]
+
+[tool.scikit-build]
+wheel.packages = []
+cmake.version = ">=3.15"
+build.targets = ["trafficppy"]
+build.verbose = true
+install.strip = false
+sdist.include = ["trafficpp/*.cpp", "trafficpp/*.h"]

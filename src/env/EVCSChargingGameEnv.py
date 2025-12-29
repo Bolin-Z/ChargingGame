@@ -1,8 +1,8 @@
 # EVCSChargingGameEnv v3.0 - 基于自环充电链路 + 预定路径的实现
-# 
+#
 # 设计思路：
 # 1. 使用自环充电链路模拟充电行为（简化网络拓扑）
-# 2. 集成预定路径Vehicle确保严格按预定路径行驶  
+# 2. 集成预定路径Vehicle确保严格按预定路径行驶
 # 3. 保持完整的PettingZoo ParallelEnv接口
 # 4. 实现Day-to-Day动态均衡的UE-DTA仿真
 
@@ -13,7 +13,12 @@ import json
 import csv
 import logging
 
-from uxsim import World, Vehicle
+# 使用 uxsimpp_extended 替代 uxsim + patch
+# 注意：使用绝对导入，确保导入 pip 安装的版本（包含编译的 C++ 模块）
+from uxsimpp_extended.uxsimpp import (
+    World, Vehicle, Link, Node, Route,
+    newWorld, VEHICLE_STATE
+)
 import networkx as nx
 from itertools import islice
 from math import floor
@@ -24,11 +29,11 @@ from gymnasium import spaces
 from typing import Dict, Any, Optional, List
 from collections import defaultdict
 
-from .patch import patch_uxsim
+# from .patch import patch_uxsim
 
 
 class EVCSChargingGameEnv(ParallelEnv):
-    """ 
+    """
     电动汽车充电站博弈环境 v3.0
     基于自环充电链路 + 预定路径的实现
     """
@@ -55,7 +60,7 @@ class EVCSChargingGameEnv(ParallelEnv):
         super().__init__()
         
         # 应用UXSim补丁
-        patch_uxsim()
+        # patch_uxsim()
         
         # 环境参数
         self.env_random_seed = random_seed

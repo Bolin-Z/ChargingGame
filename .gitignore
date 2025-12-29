@@ -6,8 +6,9 @@ __pycache__/
 
 .vscode/
 
+# 存放不同步资源文件夹
 results/
-
 papers/
-
 construct_dataset/
+UXsimpp-main/
+UXsim-1.8.2/
