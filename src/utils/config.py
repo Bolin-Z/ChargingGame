@@ -107,22 +107,25 @@ class MFDDPGConfig:
 @dataclass
 class MonitorConfig:
     """
-    实时监控配置
+    PyQtGraph 实时训练监控配置
 
-    控制训练过程中的实时可视化监控功能。
-    阈值参考线从 ScenarioProfile 和 Env 配置中自动获取。
+    布局：上2下1
+    - 左上：Step收敛指标（价格相对变化率）
+    - 右上：UE-DTA内层迭代（GM/P90/P95）
+    - 下方：各智能体收益曲线
     """
 
     # === 开关控制 ===
-    enabled: bool = True                # 是否启用实时监控（无GUI环境应设为False）
-
-    # === 图表配置 ===
-    figure_size: tuple = (14, 8)         # 图表窗口大小 (宽, 高)
+    enabled: bool = True                 # 是否启用实时监控
 
     # === 显示内容控制 ===
     show_convergence: bool = True        # 显示Step收敛指标
     show_rewards: bool = True            # 显示智能体收益曲线
-    show_ue_dta: bool = True             # 显示UE-DTA内层迭代（GM/P90/P95）
+    show_ue_dta: bool = True             # 显示UE-DTA内层迭代
+
+    # === 性能配置 ===
+    max_points: int = 500                # 每条曲线最大数据点数（滑动窗口）
+    update_interval: int = 100           # 最小刷新间隔（毫秒）
 
 
 @dataclass
