@@ -1173,6 +1173,9 @@ class EVCSChargingGameEnv(ParallelEnv):
                 dict_od_to_uncharging_vehid[(o, d)].append(key)
 
         # 释放临时 World 对象
+        W_template._vehicles_dict.invalidate_cache()
+        W_template._vehicle_refs.clear()
+        W_template._link_refs.clear()
         del W_template
 
         # 初始化路径分配（如果是第一次调用）
@@ -1200,7 +1203,22 @@ class EVCSChargingGameEnv(ParallelEnv):
                 # 计算成本差并执行路径切换，同时获取充电流量和统计信息
                 stats, new_routes_specified, charging_flows = self.__route_choice_update(W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified, iteration)
 
-                # 显式释放 World 对象，避免内存泄漏（C++ 扩展模块的循环引用无法被 Python GC 正确处理）
+                # 显式释放 World 对象，避免内存泄漏
+                # 1. 清理 Link 上的 traveltime 缓存
+                for link in W.LINKS:
+                    if hasattr(link, '_traveltime_cache'):
+                        del link._traveltime_cache
+                        del link._traveltime_cache_max_idx
+                        del link._traveltime_cache_delta_t
+
+                # 2. 清理 VehiclesDict 缓存，打破循环引用
+                W._vehicles_dict.invalidate_cache()
+
+                # 3. 清空引用列表，打破 World ↔ Vehicle 的循环引用
+                W._vehicle_refs.clear()
+                W._link_refs.clear()
+
+                # 4. 删除 Python 端引用
                 del W
                 
                 # 保存最终的充电流量和统计信息

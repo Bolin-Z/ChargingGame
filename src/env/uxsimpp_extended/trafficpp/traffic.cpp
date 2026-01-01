@@ -656,6 +656,36 @@ World::World(
 }
 
 /**
+ * 析构函数：释放所有动态分配的对象
+ */
+World::~World() {
+    // 释放所有车辆
+    for (auto* v : vehicles) {
+        delete v;
+    }
+    vehicles.clear();
+
+    // 释放所有链路
+    for (auto* l : links) {
+        delete l;
+    }
+    links.clear();
+
+    // 释放所有节点
+    for (auto* n : nodes) {
+        delete n;
+    }
+    nodes.clear();
+
+    // 清空映射
+    vehicles_living.clear();
+    vehicles_running.clear();
+    nodes_map.clear();
+    links_map.clear();
+    vehicles_map.clear();
+}
+
+/**
  * 初始化邻接矩阵
  */
 void World::initialize_adj_matrix(){

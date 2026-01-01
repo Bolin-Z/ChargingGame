@@ -287,6 +287,9 @@ struct World {
         long long random_seed,
         bool vehicle_log_mode);
 
+    // 析构函数：释放所有动态分配的对象
+    ~World();
+
     void initialize_adj_matrix();    // 初始化邻接矩阵
     void update_adj_time_matrix();   // 更新时间邻接矩阵
 
