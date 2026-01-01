@@ -12,6 +12,7 @@ import os
 import json
 import csv
 import logging
+import gc
 
 # 使用 uxsimpp_extended 替代 uxsim + patch
 # 注意：使用绝对导入，确保导入 pip 安装的版本（包含编译的 C++ 模块）
@@ -256,11 +257,15 @@ class EVCSChargingGameEnv(ParallelEnv):
         truncations = {agent: truncated for agent in self.agents}
         infos = {
             'ue_converged': ue_info['ue_converged'],
-            'ue_iterations': ue_info['ue_iterations'], 
+            'ue_iterations': ue_info['ue_iterations'],
             'ue_stats': ue_info['ue_stats'],
             'relative_change_rate': relative_change_rate
         }
-        
+
+        # 9. 每 50 步执行一次垃圾回收
+        if self.current_step % 50 == 0:
+            gc.collect()
+
         logging.debug(f"步骤{self.current_step}: 奖励={rewards}, 终止={terminated}, 截断={truncated}")
         return observations, rewards, terminations, truncations, infos
 
@@ -1167,6 +1172,9 @@ class EVCSChargingGameEnv(ParallelEnv):
             else:
                 dict_od_to_uncharging_vehid[(o, d)].append(key)
 
+        # 释放临时 World 对象
+        del W_template
+
         # 初始化路径分配（如果是第一次调用）
         if not hasattr(self, 'current_routes_specified'):
             self.current_routes_specified = self.__initialize_routes(dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, use_greedy=True)
@@ -1191,6 +1199,9 @@ class EVCSChargingGameEnv(ParallelEnv):
                 
                 # 计算成本差并执行路径切换，同时获取充电流量和统计信息
                 stats, new_routes_specified, charging_flows = self.__route_choice_update(W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified, iteration)
+
+                # 显式释放 World 对象，避免内存泄漏（C++ 扩展模块的循环引用无法被 Python GC 正确处理）
+                del W
                 
                 # 保存最终的充电流量和统计信息
                 final_charging_flows = charging_flows
