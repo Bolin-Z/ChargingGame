@@ -296,6 +296,7 @@ PYBIND11_MODULE(trafficppy, m) {
         .def("main_loop", &World::main_loop)
         .def("check_simulation_ongoing", &World::check_simulation_ongoing)
         .def("print_simple_results", &World::print_simple_results)
+        .def("release", &World::release, "显式释放资源，在创建新World前调用以避免GC延迟导致的堆冲突")
         .def("update_adj_time_matrix", &World::update_adj_time_matrix)
         .def("get_node", &World::get_node,
              py::return_value_policy::reference,
@@ -335,8 +336,10 @@ PYBIND11_MODULE(trafficppy, m) {
 
     //
     // Node 类
+    // 使用 py::nodelete 防止 pybind11 在 GC 时 delete Node
+    // Node 的生命周期完全由 World 管理
     //
-    py::class_<Node>(m, "Node")
+    py::class_<Node, std::unique_ptr<Node, py::nodelete>>(m, "Node")
         .def(py::init<World *, const std::string &, double, double>(),
              py::arg("world"),
              py::arg("node_name"),
@@ -360,9 +363,11 @@ PYBIND11_MODULE(trafficppy, m) {
         ;
 
     //
-    // Link 类 (添加 py::dynamic_attr() 支持 Python 层动态属性如 attribute)
+    // Link 类
+    // 使用 py::nodelete 防止 pybind11 在 GC 时 delete Link
+    // Link 的生命周期完全由 World 管理
     //
-    py::class_<Link>(m, "Link", py::dynamic_attr())
+    py::class_<Link, std::unique_ptr<Link, py::nodelete>>(m, "Link", py::dynamic_attr())
         .def(py::init<World *, const std::string &, const std::string &, const std::string &,
                       double, double, double, double, double>(),
              py::arg("world"),
@@ -402,9 +407,11 @@ PYBIND11_MODULE(trafficppy, m) {
         ;
 
     //
-    // Vehicle 类 (添加 py::dynamic_attr() 支持 Python 层动态属性如 attribute)
+    // Vehicle 类
+    // 使用 py::nodelete 防止 pybind11 在 GC 时 delete Vehicle
+    // Vehicle 的生命周期完全由 World 管理（通过 World::release() 或 ~World() 释放）
     //
-    py::class_<Vehicle>(m, "Vehicle", py::dynamic_attr())
+    py::class_<Vehicle, std::unique_ptr<Vehicle, py::nodelete>>(m, "Vehicle", py::dynamic_attr())
         .def(py::init<World *, const std::string &, double, const std::string &, const std::string &>(),
              py::arg("world"),
              py::arg("name"),

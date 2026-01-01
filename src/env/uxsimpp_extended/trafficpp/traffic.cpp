@@ -659,6 +659,15 @@ World::World(
  * 析构函数：释放所有动态分配的对象
  */
 World::~World() {
+    // 调用 release() 来释放资源（如果还没释放的话）
+    release();
+}
+
+/**
+ * 显式释放资源
+ * 在创建新 World 前调用，避免 GC 延迟导致的堆冲突
+ */
+void World::release() {
     // 释放所有车辆
     for (auto* v : vehicles) {
         delete v;

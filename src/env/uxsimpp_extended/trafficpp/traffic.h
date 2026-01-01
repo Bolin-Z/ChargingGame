@@ -290,6 +290,9 @@ struct World {
     // 析构函数：释放所有动态分配的对象
     ~World();
 
+    // 显式释放资源（在创建新 World 前调用，避免 GC 延迟导致的堆冲突）
+    void release();
+
     void initialize_adj_matrix();    // 初始化邻接矩阵
     void update_adj_time_matrix();   // 更新时间邻接矩阵
 
