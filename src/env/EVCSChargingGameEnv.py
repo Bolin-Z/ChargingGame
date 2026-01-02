@@ -667,15 +667,20 @@ class EVCSChargingGameEnv(ParallelEnv):
         # 复制交通需求（使用增强的Vehicle，延迟分配路径）
         vehicle_objects_created = 0
         charging_vehicle_objects = 0
-        
+
         for veh in self.W.VEHICLES.values():
+            # 使用唯一名称避免命名冲突
+            # 使用局部计数器确保兼容 uxsimpp_extended 和 UXsim+Patch
+            unique_name = f"{veh.orig.name}-{veh.dest.name}-{veh.departure_time}-{vehicle_objects_created}"
+
             # 创建Vehicle（自动注册到World），延迟分配路径
             Vehicle(
                 W, veh.orig.name, veh.dest.name,
                 veh.departure_time,
                 predefined_route=None,
                 departure_time_is_time_step=True,
-                attribute=veh.attribute.copy()
+                attribute=veh.attribute.copy(),
+                name=unique_name  # 传入唯一名称
             )
             vehicle_objects_created += 1
             if veh.attribute["charging_car"]:

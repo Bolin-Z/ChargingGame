@@ -188,6 +188,9 @@ class World:
         # 这个列表确保所有创建的 Vehicle 在 World 生命周期内保持有效。
         self._vehicle_refs = []
 
+        # Vehicle 命名计数器，避免同名冲突（避免重复跨 Python-C++ 边界访问）
+        self._vehicle_counter = 0
+
         # ========== 关键修复：缓存 Link 对象的 Python 引用 ==========
         # pybind11 每次访问 C++ 对象时可能返回不同的 Python 包装对象，
         # 导致动态属性（如 attribute）丢失。
@@ -559,8 +562,9 @@ def adddemand(W, origin, destination, start_time, end_time, flow=-1, volume=-1, 
     while t < end_time:
         demand += flow * W.delta_t
         while demand >= W.deltan:
-            # 创建车辆名称
-            veh_name = f"{origin}-{destination}-{t}"
+            # 创建车辆名称（使用 Python 层计数器避免同名冲突）
+            veh_name = f"{origin}-{destination}-{t}-{W._vehicle_counter}"
+            W._vehicle_counter += 1
             # 调用 C++ Vehicle 构造器
             veh = _CppVehicle(cpp_world, veh_name, t, origin, destination)
             # ========== 关键修复：保持 Python 引用防止垃圾回收 ==========
@@ -630,8 +634,9 @@ def adddemand_predefined_route(W, origin, destination, start_time, end_time, flo
     while t < end_time:
         demand += flow * W.delta_t
         while demand >= W.deltan:
-            # 创建车辆名称
-            veh_name = f"{origin}-{destination}-{t}"
+            # 创建车辆名称（使用 Python 层计数器避免同名冲突）
+            veh_name = f"{origin}-{destination}-{t}-{W._vehicle_counter}"
+            W._vehicle_counter += 1
             # 调用 C++ Vehicle 构造器
             veh = _CppVehicle(cpp_world, veh_name, t, origin, destination)
             # ========== 关键修复：保持 Python 引用防止垃圾回收 ==========
