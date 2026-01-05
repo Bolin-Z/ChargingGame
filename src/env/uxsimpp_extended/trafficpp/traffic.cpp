@@ -219,8 +219,11 @@ Link::Link(
     arrival_curve.resize(w->total_timesteps, 0.0);
     departure_curve.resize(w->total_timesteps, 0.0);
 
-    traveltime_real.resize(w->total_timesteps, 0.0);
-    traveltime_instant.resize(w->total_timesteps, 0.0);
+    // 初始化为自由流时间，与 UXsim 1.8.2 保持一致
+    // UXsim: traveltime_actual = np.array([s.length/s.u for t in range(s.W.TSIZE)])
+    double free_flow_time = (double)length / (double)vmax;
+    traveltime_real.resize(w->total_timesteps, free_flow_time);
+    traveltime_instant.resize(w->total_timesteps, free_flow_time);
 
     // 将自身加入节点的链路列表
     start_node->out_links.push_back(this);
@@ -255,12 +258,8 @@ void Link::update(){
  * 计算旅行时间
  */
 void Link::set_travel_time(){
-    // 最后一辆车的实际旅行时间
-    if (!traveltime_tt.empty() && !vehicles.empty()){
-        traveltime_real[w->timestep] = (double)traveltime_tt.back();
-    }else{
-        traveltime_real[w->timestep] = (double)length / (double)vmax;
-    }
+    // 移除对 traveltime_real 的更新，与 UXsim 原版保持一致
+    // traveltime_real 仅由 record_travel_time() 在车辆离开链路时更新
 
     // 瞬时旅行时间 = 长度 / 平均速度
     if (!vehicles.empty()){
@@ -537,7 +536,7 @@ void Vehicle::record_travel_time(Link *link, double t){
             link->traveltime_real[i] = actual_tt;
         }
     }
-    arrival_time_link = t + 1.0;
+    arrival_time_link = t;  // 与 UXsim 原版一致，不加偏移
 }
 
 /**

@@ -1,0 +1,146 @@
+{
+  "timestamp": "2026-01-05T20:14:00.821454",
+  "n_iterations": 50,
+  "results": [
+    {
+      "config": {
+        "name": "baseline",
+        "dm": 2.5,
+        "routes": 10,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 3.4985681727383118,
+      "min_gm": 3.211618190973141,
+      "avg_last_10": 3.775237035223374,
+      "elapsed": 234.87935185432434,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "dm_2.2",
+        "dm": 2.2,
+        "routes": 10,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 2.4989232306885336,
+      "min_gm": 2.3775367864001056,
+      "avg_last_10": 2.500076199777761,
+      "elapsed": 218.7484450340271,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "dm_2.0",
+        "dm": 2.0,
+        "routes": 10,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 2.201219022246069,
+      "min_gm": 2.1182441898160675,
+      "avg_last_10": 2.16958690955481,
+      "elapsed": 205.10620307922363,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "dm_1.8",
+        "dm": 1.8,
+        "routes": 10,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 2.0118239583526156,
+      "min_gm": 1.8836736464115902,
+      "avg_last_10": 1.9701155469175677,
+      "elapsed": 189.88769602775574,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "routes_15",
+        "dm": 2.5,
+        "routes": 15,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 3.5594222584229764,
+      "min_gm": 3.3977210518095333,
+      "avg_last_10": 4.911732923722681,
+      "elapsed": 339.2051422595978,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "routes_20",
+        "dm": 2.5,
+        "routes": 20,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 4.328189581086321,
+      "min_gm": 3.5692287232293043,
+      "avg_last_10": 4.54663404695901,
+      "elapsed": 436.39179968833923,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "sf_style",
+        "dm": 2.5,
+        "routes": 10,
+        "gamma": 5.0,
+        "alpha": 0.08
+      },
+      "final_gm": 3.657491001940758,
+      "min_gm": 3.4058381179191723,
+      "avg_last_10": 3.967600529373942,
+      "elapsed": 237.70066380500793,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "dm2.0_routes15",
+        "dm": 2.0,
+        "routes": 15,
+        "gamma": 10.0,
+        "alpha": 0.05
+      },
+      "final_gm": 2.1780633423535085,
+      "min_gm": 2.149600633146981,
+      "avg_last_10": 2.233210079104954,
+      "elapsed": 287.13702630996704,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "dm2.0_sf_style",
+        "dm": 2.0,
+        "routes": 10,
+        "gamma": 5.0,
+        "alpha": 0.08
+      },
+      "final_gm": 2.2337508182362806,
+      "min_gm": 2.1475681686160826,
+      "avg_last_10": 2.211749144492348,
+      "elapsed": 204.8943009376526,
+      "success": true
+    },
+    {
+      "config": {
+        "name": "best_combo",
+        "dm": 2.0,
+        "routes": 15,
+        "gamma": 5.0,
+        "alpha": 0.08
+      },
+      "final_gm": 2.244160234607426,
+      "min_gm": 2.130375212776661,
+      "avg_last_10": 2.221574345602195,
+      "elapsed": 285.93995666503906,
+      "success": true
+    }
+  ]
+}
