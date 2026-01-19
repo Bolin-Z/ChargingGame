@@ -157,11 +157,14 @@ class MADDPGTrainer:
                     if self._check_stable_convergence():
                         print(f"连续收敛，训练提前结束于episode {episode}")
                         break
-                
+
                 episode_pbar.update(1)
-        
+
         # 生成训练结果
         results = self._generate_training_results()
+
+        # 打印诊断摘要
+        self._print_diagnostics_summary(results.get('diagnostics', {}))
 
         # 关闭监控器
         self.monitor.close()
@@ -171,38 +174,91 @@ class MADDPGTrainer:
         results['experiment_dir'] = experiment_dir
 
         return results
+
+    def _print_diagnostics_summary(self, diagnostics: Dict):
+        """
+        打印学习诊断摘要到控制台
+
+        Args:
+            diagnostics: 诊断摘要数据
+        """
+        print("\n" + "=" * 60)
+        print("学习诊断摘要")
+        print("=" * 60)
+
+        if diagnostics.get('status') == 'no_learning_data':
+            print("没有学习指标数据")
+            return
+
+        print(f"总学习步数: {diagnostics.get('total_learn_steps', 0)}")
+        print()
+
+        # 打印每个 agent 的关键指标
+        for agent_id, agent_data in diagnostics.get('agents', {}).items():
+            print(f"--- {agent_id} ---")
+
+            # Actor 梯度（关键指标）
+            actor_grad = agent_data.get('actor_grad_norm', {})
+            if actor_grad:
+                print(f"  Actor 梯度范数: mean={actor_grad['mean']:.2e}, "
+                      f"first={actor_grad['first']:.2e}, last={actor_grad['last']:.2e}")
+
+            # Critic 梯度
+            critic_grad = agent_data.get('critic_grad_norm', {})
+            if critic_grad:
+                print(f"  Critic 梯度范数: mean={critic_grad['mean']:.2e}")
+
+            # Q 值统计
+            q_mean = agent_data.get('q_value_mean', {})
+            if q_mean:
+                print(f"  Q 值均值: mean={q_mean['mean']:.4f}, "
+                      f"first={q_mean['first']:.4f}, last={q_mean['last']:.4f}")
+
+            # 探索噪音
+            noise = agent_data.get('noise_sigma', {})
+            if noise:
+                print(f"  探索噪音 sigma: first={noise['first']:.4f}, last={noise['last']:.4f}")
+
+            print()
+
+        # 打印诊断结论
+        print("诊断结论:")
+        for issue in diagnostics.get('diagnosis', []):
+            print(f"  {issue}")
+
+        print("=" * 60 + "\n")
     
     def _run_episode(self, episode: int, observations: Dict) -> Tuple[bool, int]:
         """
         Step层逻辑：在单个episode内调整智能体策略直到收敛或超时
-        
+
         Args:
             episode: 当前episode编号
             observations: 初始观测
-        
+
         Returns:
             Tuple[bool, int]: (是否收敛, episode长度)
         """
-        with tqdm(total=self.config.max_steps_per_episode, 
+        with tqdm(total=self.config.max_steps_per_episode,
                   desc=f"Episode {episode}", unit="step", leave=False, dynamic_ncols=True) as step_pbar:
-            
+
             for step in range(self.config.max_steps_per_episode):
-                
+
                 # 智能体决策
                 actions = self.maddpg.take_action(observations, add_noise=True)
-                
+
                 # 获取实际价格（在step之前）
                 actual_prices = self.env.actions_to_prices_dict(actions)
-                
+
                 # 环境响应
                 next_observations, rewards, terminations, truncations, infos = self.env.step(actions)
-                
+
                 # 存储经验并学习
                 self.maddpg.store_experience(observations, actions, rewards, next_observations, terminations)
-                self.maddpg.learn()
-                
-                # 记录详细信息
-                self.step_records.append({
+                learn_metrics = self.maddpg.learn()
+
+                # 记录详细信息（包含诊断指标）
+                step_record = {
                     'episode': episode,
                     'step': step,
                     'actions': actions.copy(),
@@ -210,7 +266,13 @@ class MADDPGTrainer:
                     'rewards': rewards.copy(),
                     'ue_info': infos,
                     'relative_change_rate': infos.get('relative_change_rate', float('inf'))
-                })
+                }
+
+                # 添加学习诊断指标（如果有）
+                if learn_metrics is not None:
+                    step_record['learn_metrics'] = learn_metrics
+
+                self.step_records.append(step_record)
 
                 # 通知监控器Step结束
                 self.monitor.on_step_end(
@@ -224,17 +286,22 @@ class MADDPGTrainer:
                     step_pbar.set_postfix({"状态": "收敛"})
                     step_pbar.update(self.config.max_steps_per_episode - step)
                     return True, step + 1
-                
+
                 # 更新观测
                 observations = next_observations
-                
-                # 更新进度条
-                step_pbar.set_postfix({
+
+                # 更新进度条（添加诊断信息）
+                postfix = {
                     "UE迭代": infos.get('ue_iterations', 0),
                     "相对变化": f"{infos.get('relative_change_rate', float('inf')):.4f}"
-                })
+                }
+                # 如果有学习指标，显示第一个 agent 的 actor 梯度范数
+                if learn_metrics is not None:
+                    first_agent = list(learn_metrics['agents'].keys())[0]
+                    postfix["Actor梯度"] = f"{learn_metrics['agents'][first_agent]['actor_grad_norm']:.2e}"
+                step_pbar.set_postfix(postfix)
                 step_pbar.update(1)
-        
+
         # Episode超时未收敛
         step_pbar.set_postfix({"状态": "超时"})
         return False, self.config.max_steps_per_episode
@@ -351,19 +418,22 @@ class MADDPGTrainer:
     def _generate_training_results(self) -> Dict:
         """
         生成完整的训练结果统计
-        
+
         Returns:
             Dict: 训练统计结果
         """
         total_episodes = len(self.episode_lengths)
         total_convergences = len(self.convergence_episodes)
-        
+
         # 从step_records计算总UE迭代次数
         total_ue_iterations = sum(
-            record['ue_info'].get('ue_iterations', 0) 
+            record['ue_info'].get('ue_iterations', 0)
             for record in self.step_records
         )
-        
+
+        # 生成学习诊断摘要
+        diagnostics = self._generate_diagnostics_summary()
+
         return {
             'total_episodes': total_episodes,
             'total_convergences': total_convergences,
@@ -371,8 +441,108 @@ class MADDPGTrainer:
             'average_episode_length': np.mean(self.episode_lengths) if self.episode_lengths else 0.0,
             'total_ue_iterations': total_ue_iterations,
             'convergence_episodes': self.convergence_episodes,
-            'final_nash_equilibrium': self.get_nash_equilibrium()
+            'final_nash_equilibrium': self.get_nash_equilibrium(),
+            'diagnostics': diagnostics
         }
+
+    def _generate_diagnostics_summary(self) -> Dict:
+        """
+        生成学习诊断摘要
+
+        从 step_records 中提取学习指标，计算统计摘要，
+        用于诊断梯度断开、Q值爆炸、探索停止等问题。
+
+        Returns:
+            Dict: 诊断摘要，包含每个 agent 的指标统计
+        """
+        # 收集所有有学习指标的 step
+        metrics_records = [r['learn_metrics'] for r in self.step_records if r.get('learn_metrics')]
+
+        if not metrics_records:
+            return {'status': 'no_learning_data', 'message': '没有学习指标数据'}
+
+        # 获取 agent 列表
+        agents = list(metrics_records[0]['agents'].keys())
+
+        summary = {
+            'total_learn_steps': len(metrics_records),
+            'agents': {}
+        }
+
+        for agent_id in agents:
+            agent_metrics = {
+                'actor_loss': [],
+                'actor_grad_norm': [],
+                'critic_loss': [],
+                'critic_grad_norm': [],
+                'q_value_mean': [],
+                'noise_sigma': []
+            }
+
+            for record in metrics_records:
+                agent_data = record['agents'].get(agent_id, {})
+                for key in agent_metrics:
+                    if key in agent_data:
+                        agent_metrics[key].append(agent_data[key])
+
+            # 计算统计摘要
+            agent_summary = {}
+            for key, values in agent_metrics.items():
+                if values:
+                    arr = np.array(values)
+                    agent_summary[key] = {
+                        'mean': float(np.mean(arr)),
+                        'std': float(np.std(arr)),
+                        'min': float(np.min(arr)),
+                        'max': float(np.max(arr)),
+                        'first': float(arr[0]),
+                        'last': float(arr[-1]),
+                    }
+
+            summary['agents'][agent_id] = agent_summary
+
+        # 添加诊断结论
+        summary['diagnosis'] = self._diagnose_learning_issues(summary)
+
+        return summary
+
+    def _diagnose_learning_issues(self, summary: Dict) -> List[str]:
+        """
+        根据诊断摘要自动检测潜在问题
+
+        Args:
+            summary: 诊断摘要数据
+
+        Returns:
+            List[str]: 检测到的问题列表
+        """
+        issues = []
+
+        for agent_id, agent_data in summary.get('agents', {}).items():
+            # 检查 Actor 梯度是否接近 0
+            actor_grad = agent_data.get('actor_grad_norm', {})
+            if actor_grad and actor_grad.get('mean', 1) < 1e-6:
+                issues.append(f"⚠️ {agent_id}: Actor 梯度接近 0 (mean={actor_grad['mean']:.2e})，可能存在梯度断开问题")
+
+            # 检查探索是否过早停止
+            noise = agent_data.get('noise_sigma', {})
+            if noise and noise.get('last', 1) <= 0.011:  # 接近 min_noise=0.01
+                issues.append(f"⚠️ {agent_id}: 探索噪音已降至最小值 (sigma={noise['last']:.4f})，可能过早停止探索")
+
+            # 检查 Q 值是否爆炸
+            q_mean = agent_data.get('q_value_mean', {})
+            if q_mean and (abs(q_mean.get('max', 0)) > 1e6 or abs(q_mean.get('min', 0)) > 1e6):
+                issues.append(f"⚠️ {agent_id}: Q 值可能爆炸 (max={q_mean['max']:.2e})")
+
+            # 检查 Actor loss 是否长期不变
+            actor_loss = agent_data.get('actor_loss', {})
+            if actor_loss and actor_loss.get('std', 1) < 1e-6:
+                issues.append(f"⚠️ {agent_id}: Actor loss 几乎不变 (std={actor_loss['std']:.2e})，Actor 可能没有在学习")
+
+        if not issues:
+            issues.append("✅ 未检测到明显的学习问题")
+
+        return issues
     
     def save_training_data(self) -> str:
         """

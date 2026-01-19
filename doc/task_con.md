@@ -310,3 +310,105 @@ for i in range(batch_size):
 1. **梯度验证测试**：随机数据跑一次 actor 更新，断言参数变化且梯度范数 > 0
 2. **Nash Gap 下降**：修复后重新训练，单边偏离测试的最大增益应显著降低
 3. **学习曲线合理**：actor_loss 应有明显变化趋势，而非长期平稳
+
+---
+
+## 十、学习诊断指标实现（2026-01-19）
+
+**参与者**: User, Claude (Opus)
+
+### 10.1 实现目标
+
+在修复梯度链路之前，先添加诊断指标系统，用于：
+1. **确认问题存在**：通过观察 Actor 梯度范数是否接近 0 来验证梯度断开
+2. **建立基线数据**：记录修复前的指标，便于与修复后对比
+3. **持续监控**：为后续训练提供可观测性
+
+### 10.2 实现的诊断指标
+
+| 指标类别 | 具体指标 | 诊断目的 |
+|---------|---------|---------|
+| **损失函数** | `critic_loss`, `actor_loss` | 确认学习在进行 |
+| **梯度健康** | `actor_grad_norm`, `critic_grad_norm` | 检测梯度断开/爆炸/消失 |
+| **Q值统计** | `q_value_mean`, `q_value_std`, `q_value_max`, `q_value_min` | 检测 Q 值爆炸或塌缩 |
+| **探索强度** | `noise_sigma` | 监控探索是否过早停止 |
+
+### 10.3 代码修改清单
+
+#### 10.3.1 MADDPG 算法层 (`src/algorithms/maddpg/maddpg.py`)
+
+1. **`_update_critic()` 方法**：返回值从 `float` 改为 `dict`
+   - 新增：`critic_grad_norm`, `q_value_mean/std/max/min`, `target_q_mean`
+
+2. **`_update_actor()` 方法**：返回值从 `float` 改为 `dict`
+   - 新增：`actor_grad_norm`（关键诊断指标）
+
+3. **新增 `_compute_grad_norm()` 方法**：计算网络参数梯度的 L2 范数
+
+4. **`learn()` 方法**：返回值从 `bool` 改为 `dict | None`
+   - 汇总所有 agent 的诊断指标
+   - 包含 `batch_size`, `buffer_size`, 每个 agent 的完整指标
+
+#### 10.3.2 Trainer 层 (`src/trainer/MADDPGTrainer.py`)
+
+1. **`_run_episode()` 方法**：
+   - 记录 `learn_metrics` 到 `step_records`
+   - 进度条显示 Actor 梯度范数
+
+2. **新增 `_generate_diagnostics_summary()` 方法**：
+   - 从 `step_records` 提取学习指标
+   - 计算每个 agent 的统计摘要（mean/std/min/max/first/last）
+
+3. **新增 `_diagnose_learning_issues()` 方法**：
+   - 自动检测潜在问题：
+     - Actor 梯度接近 0 → 梯度断开
+     - 探索噪音降至最小值 → 过早停止探索
+     - Q 值过大 → Q 值爆炸
+     - Actor loss 几乎不变 → Actor 没有在学习
+
+4. **新增 `_print_diagnostics_summary()` 方法**：
+   - 训练结束后打印诊断摘要到控制台
+
+### 10.4 诊断输出示例
+
+训练结束后自动输出：
+
+```
+============================================================
+学习诊断摘要
+============================================================
+总学习步数: 299
+
+--- agent_0 ---
+  Actor 梯度范数: mean=X.XXe-XX, first=X.XXe-XX, last=X.XXe-XX
+  Critic 梯度范数: mean=X.XXe-XX
+  Q 值均值: mean=X.XXXX, first=X.XXXX, last=X.XXXX
+  探索噪音 sigma: first=0.1000, last=0.XXXX
+
+--- agent_1 ---
+  ...
+
+诊断结论:
+  ⚠️ agent_0: Actor 梯度接近 0 (mean=X.XXe-XX)，可能存在梯度断开问题
+  ⚠️ agent_0: 探索噪音已降至最小值 (sigma=0.0100)，可能过早停止探索
+============================================================
+```
+
+### 10.5 测试脚本
+
+创建 `test_diagnostics.py` 用于快速验证：
+- 配置：1 episode, 300 steps
+- 目的：快速确认诊断功能正常工作
+
+### 10.6 预期结果
+
+运行测试后，预期观察到：
+1. **Actor 梯度范数接近 0**：确认 MADDPG 存在梯度断开问题
+2. **Critic 梯度范数正常**（非零）：Critic 网络正常学习
+3. **探索噪音快速下降**：确认探索衰减过快问题
+
+### 10.7 下一步
+
+根据诊断结果：
+1. 如果 Actor 梯度确实接近 0 → 执行 P0 修复（梯度链路）
+2. 如果 Actor 梯度正常 → 重新分析问题原因

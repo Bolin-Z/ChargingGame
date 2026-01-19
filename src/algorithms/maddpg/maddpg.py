@@ -363,24 +363,24 @@ class MADDPG:
     def _update_critic(self, agent, agent_id, batch_obs, batch_actions, batch_rewards, batch_next_obs, batch_dones):
         """
         更新单个智能体的Critic网络
-        
+
         Args:
             agent: DDPG智能体实例
             agent_id: 智能体ID
             batch_obs, batch_actions, batch_rewards, batch_next_obs, batch_dones: 批次数据
-            
+
         Returns:
-            float: Critic损失值
+            dict: 包含 critic_loss, critic_grad_norm, q_value 统计的诊断指标
         """
         batch_size = len(batch_obs)
-        
+
         # 构建当前状态的全局状态向量
         current_global_states = []
         for i in range(batch_size):
             global_state = organize_global_state(batch_obs[i], batch_actions[i], self.flow_scale_factor)
             current_global_states.append(global_state)
         current_global_states = torch.FloatTensor(np.array(current_global_states)).to(self.device)
-        
+
         # 构建下一状态的全局状态向量（需要使用目标Actor网络生成下一动作）
         next_global_states = []
         for i in range(batch_size):
@@ -397,58 +397,71 @@ class MADDPG:
             global_next_state = organize_global_state(batch_next_obs[i], next_actions, self.flow_scale_factor)
             next_global_states.append(global_next_state)
         next_global_states = torch.FloatTensor(np.array(next_global_states)).to(self.device)
-        
+
         # 获取当前智能体的奖励和终止标志
         current_rewards = torch.FloatTensor([batch_rewards[i][agent_id] for i in range(batch_size)]).unsqueeze(1).to(self.device)
         current_dones = torch.FloatTensor([batch_dones[i][agent_id] for i in range(batch_size)]).unsqueeze(1).to(self.device)
-        
+
         # 计算目标Q值
         with torch.no_grad():
             target_q_values = agent.critic_target(next_global_states)
             target_q_values = current_rewards + (1 - current_dones) * self.gamma * target_q_values
-        
+
         # 计算当前Q值
         current_q_values = agent.critic(current_global_states)
-        
+
         # 计算Critic损失（MSE）
         critic_loss = nn.MSELoss()(current_q_values, target_q_values)
-        
+
         # 反向传播更新Critic
         agent.critic_optimizer.zero_grad()
         critic_loss.backward()
+
+        # 收集梯度范数（在 step 之前）
+        critic_grad_norm = self._compute_grad_norm(agent.critic)
+
         agent.critic_optimizer.step()
-        
-        return critic_loss.item()
+
+        # 返回诊断指标
+        return {
+            'critic_loss': critic_loss.item(),
+            'critic_grad_norm': critic_grad_norm,
+            'q_value_mean': current_q_values.mean().item(),
+            'q_value_std': current_q_values.std().item(),
+            'q_value_max': current_q_values.max().item(),
+            'q_value_min': current_q_values.min().item(),
+            'target_q_mean': target_q_values.mean().item(),
+        }
     
     def _update_actor(self, agent, agent_id, batch_obs, batch_actions):
         """
         更新单个智能体的Actor网络
-        
+
         Args:
             agent: DDPG智能体实例
             agent_id: 智能体ID
             batch_obs, batch_actions: 批次观测和动作数据
-            
+
         Returns:
-            float: Actor损失值
+            dict: 包含 actor_loss 和 actor_grad_norm 的诊断指标
         """
         batch_size = len(batch_obs)
-        
+
         # 准备观测数据
         obs_list = []
         for i in range(batch_size):
             current_obs = process_observations(batch_obs[i][agent_id], self.flow_scale_factor)
             obs_list.append(current_obs)
-        
+
         obs_tensor = torch.FloatTensor(np.array(obs_list)).to(self.device)
-        
+
         # 生成当前智能体的动作（保持梯度）
         new_actions = agent.actor(obs_tensor)
-        
+
         # 构建全局观测和动作张量（用于Critic网络输入）
         # 使用 organize_global_state 函数确保去重优化
         global_states_list = []
-        
+
         for i in range(batch_size):
             # 构建包含当前智能体新动作的动作字典
             current_actions = batch_actions[i].copy()
@@ -457,55 +470,93 @@ class MADDPG:
             # 使用统一的全局状态组织函数（去重优化）
             global_state = organize_global_state(batch_obs[i], current_actions, self.flow_scale_factor)
             global_states_list.append(global_state)
-        
+
         global_states_tensor = torch.FloatTensor(np.array(global_states_list)).to(self.device)
-        
+
         # 计算Actor损失（策略梯度）
         q_values = agent.critic(global_states_tensor)
         actor_loss = -q_values.mean()  # 最大化Q值
-        
+
         # 反向传播更新Actor
         agent.actor_optimizer.zero_grad()
         actor_loss.backward()
+
+        # 收集梯度范数（在 step 之前）—— 这是关键诊断指标！
+        actor_grad_norm = self._compute_grad_norm(agent.actor)
+
         agent.actor_optimizer.step()
-        
-        return actor_loss.item()
-    
+
+        # 返回诊断指标
+        return {
+            'actor_loss': actor_loss.item(),
+            'actor_grad_norm': actor_grad_norm,
+        }
+
+    def _compute_grad_norm(self, network):
+        """
+        计算网络参数的梯度范数
+
+        Args:
+            network: PyTorch 网络模块
+
+        Returns:
+            float: 梯度的 L2 范数，如果没有梯度则返回 0.0
+        """
+        total_norm = 0.0
+        for param in network.parameters():
+            if param.grad is not None:
+                total_norm += param.grad.data.norm(2).item() ** 2
+        return total_norm ** 0.5
+
     def learn(self):
         """
         中心化训练：更新所有智能体的网络
-        
+
         Returns:
-            bool: 是否成功执行学习更新
+            dict | None: 诊断指标字典，如果经验不足则返回 None
+                - 每个 agent 的 actor_loss, actor_grad_norm
+                - 每个 agent 的 critic_loss, critic_grad_norm, q_value 统计
+                - 当前探索噪音强度 noise_sigma
         """
         # 检查是否有足够的经验开始学习
         min_buffer_size = 8  # 最小8个经验即开始学习
         if len(self.replay_buffer) < min_buffer_size:
-            return False
-        
+            return None
+
         # 动态调整批次大小
         current_batch_size = self._get_dynamic_batch_size()
-        
+
         # 从经验回放缓冲区采样
         batch_experiences = self.replay_buffer.sample(current_batch_size)
-        
+
         # 解析批次经验
         batch_obs, batch_actions, batch_rewards, batch_next_obs, batch_dones = self._parse_batch_experiences(batch_experiences)
-        
+
+        # 收集诊断指标
+        metrics = {
+            'batch_size': current_batch_size,
+            'buffer_size': len(self.replay_buffer),
+            'agents': {}
+        }
+
         # 为每个智能体更新Critic网络
         for agent_id in self.agent_ids:
             agent = self.agents[agent_id]
-            critic_loss = self._update_critic(agent, agent_id, batch_obs, batch_actions, batch_rewards, batch_next_obs, batch_dones)
-        
+            critic_metrics = self._update_critic(agent, agent_id, batch_obs, batch_actions, batch_rewards, batch_next_obs, batch_dones)
+            metrics['agents'][agent_id] = critic_metrics
+
         # 为每个智能体更新Actor网络
         for agent_id in self.agent_ids:
             agent = self.agents[agent_id]
-            actor_loss = self._update_actor(agent, agent_id, batch_obs, batch_actions)
-        
+            actor_metrics = self._update_actor(agent, agent_id, batch_obs, batch_actions)
+            metrics['agents'][agent_id].update(actor_metrics)
+            # 记录当前 agent 的探索噪音强度
+            metrics['agents'][agent_id]['noise_sigma'] = agent.noise.sigma
+
         # 软更新所有智能体的目标网络
         self.update_all_targets(self.tau)
-        
-        return True
+
+        return metrics
     
     def update_all_targets(self, tau=0.01):
         """
