@@ -212,13 +212,14 @@ class MADDPG:
     """
     
     def __init__(self, agent_ids, obs_dim, action_dim, global_obs_dim,
-                 buffer_capacity=10000, max_batch_size=64, actor_lr=0.001, critic_lr=0.001, 
+                 buffer_capacity=10000, max_batch_size=64, actor_lr=0.001, critic_lr=0.001,
                  gamma=0.99, tau=0.01, seed=None, device='cpu',
                  actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
-                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01):
+                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01,
+                 flow_scale_factor=1.0):
         """
         初始化MADDPG协调器
-        
+
         Args:
             agent_ids (list): 智能体ID列表
             obs_dim (int): 单个智能体的观测维度
@@ -237,6 +238,7 @@ class MADDPG:
             noise_sigma (float): 探索噪音初始标准差
             noise_decay (float): 噪音衰减率
             min_noise (float): 最小噪音标准差
+            flow_scale_factor (float): 流量缩放因子，用于归一化流量观测
         """
         # 设置随机种子
         if seed is not None:
@@ -252,6 +254,7 @@ class MADDPG:
         self.gamma = gamma
         self.tau = tau
         self.device = device
+        self.flow_scale_factor = flow_scale_factor
         
         # 创建多个DDPG智能体
         self.agents = {}
@@ -277,18 +280,18 @@ class MADDPG:
     def take_action(self, observations, add_noise=True):
         """
         所有智能体选择动作
-        
+
         Args:
             observations (dict): 智能体观测字典 {agent_id: observation}
             add_noise (bool): 是否添加探索噪音
-            
+
         Returns:
             dict: 智能体动作字典 {agent_id: action}
         """
         actions = {}
         for agent_id in self.agent_ids:
             # 处理观测数据为单一向量
-            obs = process_observations(observations[agent_id])
+            obs = process_observations(observations[agent_id], self.flow_scale_factor)
             actions[agent_id] = self.agents[agent_id].take_action(obs, add_noise)
         return actions
     
@@ -374,7 +377,7 @@ class MADDPG:
         # 构建当前状态的全局状态向量
         current_global_states = []
         for i in range(batch_size):
-            global_state = organize_global_state(batch_obs[i], batch_actions[i])
+            global_state = organize_global_state(batch_obs[i], batch_actions[i], self.flow_scale_factor)
             current_global_states.append(global_state)
         current_global_states = torch.FloatTensor(np.array(current_global_states)).to(self.device)
         
@@ -384,14 +387,14 @@ class MADDPG:
             # 为所有智能体生成下一状态的动作（使用目标Actor网络）
             next_actions = {}
             for aid in self.agent_ids:
-                next_obs_agent = process_observations(batch_next_obs[i][aid])
+                next_obs_agent = process_observations(batch_next_obs[i][aid], self.flow_scale_factor)
                 next_obs_tensor = torch.FloatTensor(next_obs_agent).unsqueeze(0).to(self.device)
                 with torch.no_grad():
                     next_action = self.agents[aid].actor_target(next_obs_tensor).detach().cpu().numpy().flatten()
                 next_actions[aid] = next_action
-            
+
             # 组织下一状态的全局信息
-            global_next_state = organize_global_state(batch_next_obs[i], next_actions)
+            global_next_state = organize_global_state(batch_next_obs[i], next_actions, self.flow_scale_factor)
             next_global_states.append(global_next_state)
         next_global_states = torch.FloatTensor(np.array(next_global_states)).to(self.device)
         
@@ -434,7 +437,7 @@ class MADDPG:
         # 准备观测数据
         obs_list = []
         for i in range(batch_size):
-            current_obs = process_observations(batch_obs[i][agent_id])
+            current_obs = process_observations(batch_obs[i][agent_id], self.flow_scale_factor)
             obs_list.append(current_obs)
         
         obs_tensor = torch.FloatTensor(np.array(obs_list)).to(self.device)
@@ -450,9 +453,9 @@ class MADDPG:
             # 构建包含当前智能体新动作的动作字典
             current_actions = batch_actions[i].copy()
             current_actions[agent_id] = new_actions[i].detach().cpu().numpy()
-            
+
             # 使用统一的全局状态组织函数（去重优化）
-            global_state = organize_global_state(batch_obs[i], current_actions)
+            global_state = organize_global_state(batch_obs[i], current_actions, self.flow_scale_factor)
             global_states_list.append(global_state)
         
         global_states_tensor = torch.FloatTensor(np.array(global_states_list)).to(self.device)
@@ -517,57 +520,61 @@ class MADDPG:
 
 # 工具函数
 
-def process_observations(observation):
+def process_observations(observation, flow_scale_factor=1.0):
     """
     处理单个智能体观测数据，转换为网络输入向量
-    
+
     将字典格式的观测数据展平为一维向量，用于神经网络输入。
-    
+    流量会除以 flow_scale_factor 进行缩放，使其与价格处于相近的数量级。
+
     Args:
         observation (dict): 智能体观测，包含:
             - "last_round_all_prices": np.ndarray, 形状 (n_agents, n_periods)
             - "own_charging_flow": np.ndarray, 形状 (n_periods,)
-    
+        flow_scale_factor (float): 流量缩放因子，默认为1.0（不缩放）
+
     Returns:
         np.ndarray: 展平的观测向量，形状 (obs_dim,)
     """
     last_prices = observation["last_round_all_prices"].flatten()
-    own_flow = observation["own_charging_flow"].flatten()
+    own_flow = observation["own_charging_flow"].flatten() / flow_scale_factor
     return np.concatenate([last_prices, own_flow])
 
 
-def organize_global_state(observations, actions):
+def organize_global_state(observations, actions, flow_scale_factor=1.0):
     """
     组织全局状态信息，去除重复数据（优化版本）
-    
+
     将所有智能体的观测和动作信息组织成集中式输入向量。
     优化策略：去除重复的全局价格信息，减少参数量。
-    
+    流量会除以 flow_scale_factor 进行缩放。
+
     Args:
         observations (dict): 所有智能体的观测 {agent_id: observation_dict}
         actions (dict): 所有智能体的动作 {agent_id: action_array}
-    
+        flow_scale_factor (float): 流量缩放因子，默认为1.0（不缩放）
+
     Returns:
         np.ndarray: 优化后的全局状态向量
     """
     sorted_agents = sorted(observations.keys())  # 确保顺序一致
-    
+
     # 1. 全局价格历史（去重：所有agent观测中的价格信息相同，只取一份）
     global_prices = observations[sorted_agents[0]]["last_round_all_prices"].flatten()
-    
+
     # 2. 所有智能体充电流量（无重复：每个agent的流量不同，需要全部保留）
     all_flows = []
     for agent_id in sorted_agents:
-        flow = observations[agent_id]["own_charging_flow"].flatten()
+        flow = observations[agent_id]["own_charging_flow"].flatten() / flow_scale_factor
         all_flows.append(flow)
     all_charging_flows = np.concatenate(all_flows)
-    
+
     # 3. 所有智能体当前动作（无重复：每个agent动作不同）
     all_actions = []
     for agent_id in sorted_agents:
         all_actions.append(actions[agent_id].flatten())
     all_current_actions = np.concatenate(all_actions)
-    
+
     return np.concatenate([global_prices, all_charging_flows, all_current_actions])
 
 

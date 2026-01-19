@@ -219,7 +219,8 @@ class IndependentDDPG:
                  buffer_capacity=10000, max_batch_size=64, actor_lr=0.001, critic_lr=0.001,
                  gamma=0.95, tau=0.01, seed=None, device='cpu',
                  actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
-                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01):
+                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01,
+                 flow_scale_factor=1.0):
         """
         初始化独立DDPG算法
 
@@ -241,6 +242,7 @@ class IndependentDDPG:
             noise_sigma (float): 探索噪音初始标准差
             noise_decay (float): 噪音衰减率
             min_noise (float): 最小噪音标准差
+            flow_scale_factor (float): 流量缩放因子，用于归一化流量观测
         """
         # 设置随机种子
         if seed is not None:
@@ -256,6 +258,7 @@ class IndependentDDPG:
         self.gamma = gamma
         self.tau = tau
         self.device = device
+        self.flow_scale_factor = flow_scale_factor
 
         # 创建多个独立的DDPG智能体
         self.agents = {}
@@ -294,7 +297,7 @@ class IndependentDDPG:
         actions = {}
         for agent_id in self.agent_ids:
             # 处理观测数据为单一向量
-            obs = process_observations(observations[agent_id])
+            obs = process_observations(observations[agent_id], self.flow_scale_factor)
             actions[agent_id] = self.agents[agent_id].take_action(obs, add_noise)
         return actions
 
@@ -380,7 +383,7 @@ class IndependentDDPG:
         # 构建当前状态的局部状态向量
         current_local_states = []
         for i in range(batch_size):
-            local_state = organize_local_state(batch_obs[i], batch_actions[i])
+            local_state = organize_local_state(batch_obs[i], batch_actions[i], self.flow_scale_factor)
             current_local_states.append(local_state)
         current_local_states = torch.FloatTensor(np.array(current_local_states)).to(self.device)
 
@@ -388,13 +391,13 @@ class IndependentDDPG:
         next_local_states = []
         for i in range(batch_size):
             # 为当前智能体生成下一状态的动作（使用目标Actor网络）
-            next_obs_processed = process_observations(batch_next_obs[i])
+            next_obs_processed = process_observations(batch_next_obs[i], self.flow_scale_factor)
             next_obs_tensor = torch.FloatTensor(next_obs_processed).unsqueeze(0).to(self.device)
             with torch.no_grad():
                 next_action = agent.actor_target(next_obs_tensor).detach().cpu().numpy().flatten()
 
             # 组织下一状态的局部信息
-            local_next_state = organize_local_state(batch_next_obs[i], next_action)
+            local_next_state = organize_local_state(batch_next_obs[i], next_action, self.flow_scale_factor)
             next_local_states.append(local_next_state)
         next_local_states = torch.FloatTensor(np.array(next_local_states)).to(self.device)
 
@@ -440,7 +443,7 @@ class IndependentDDPG:
         # 处理观测数据
         processed_obs = []
         for obs in batch_obs:
-            obs_vec = process_observations(obs)
+            obs_vec = process_observations(obs, self.flow_scale_factor)
             processed_obs.append(obs_vec)
         obs_tensor = torch.FloatTensor(np.array(processed_obs)).to(self.device)
 
@@ -451,7 +454,7 @@ class IndependentDDPG:
         local_states = []
         for i in range(batch_size):
             action = current_actions[i].detach().cpu().numpy()
-            local_state = organize_local_state(batch_obs[i], action)
+            local_state = organize_local_state(batch_obs[i], action, self.flow_scale_factor)
             local_states.append(local_state)
         local_states_tensor = torch.FloatTensor(np.array(local_states)).to(self.device)
 
@@ -509,38 +512,42 @@ class IndependentDDPG:
 
 # 工具函数
 
-def process_observations(observation):
+def process_observations(observation, flow_scale_factor=1.0):
     """
     处理单个智能体观测数据，转换为网络输入向量
 
     将字典格式的观测数据展平为一维向量，用于Actor网络输入。
     与MADDPG完全相同，确保公平对比。
+    流量会除以 flow_scale_factor 进行缩放，使其与价格处于相近的数量级。
 
     Args:
         observation (dict): 智能体观测，包含:
             - "last_round_all_prices": np.ndarray, 形状 (n_agents, n_periods)
             - "own_charging_flow": np.ndarray, 形状 (n_periods,)
+        flow_scale_factor (float): 流量缩放因子，默认为1.0（不缩放）
 
     Returns:
         np.ndarray: 展平的观测向量，形状 (obs_dim,)
     """
     last_prices = observation["last_round_all_prices"].flatten()
-    own_flow = observation["own_charging_flow"].flatten()
+    own_flow = observation["own_charging_flow"].flatten() / flow_scale_factor
     return np.concatenate([last_prices, own_flow])
 
 
-def organize_local_state(observation, action):
+def organize_local_state(observation, action, flow_scale_factor=1.0):
     """
     组织单个智能体的局部状态信息
 
     将观测和动作组合成Critic网络的输入状态。
     局部状态包含：可观测的全局价格历史 + 自身流量历史 + 当前动作。
+    流量会除以 flow_scale_factor 进行缩放。
 
     Args:
         observation (dict): 单个智能体的观测字典
             - "last_round_all_prices": np.ndarray, 形状 (n_agents, n_periods)
             - "own_charging_flow": np.ndarray, 形状 (n_periods,)
         action (np.ndarray): 单个智能体的动作，形状 (action_dim,)
+        flow_scale_factor (float): 流量缩放因子，默认为1.0（不缩放）
 
     Returns:
         np.ndarray: 局部状态向量，形状 (local_state_dim,)
@@ -549,7 +556,7 @@ def organize_local_state(observation, action):
     global_prices = observation["last_round_all_prices"].flatten()
 
     # 2. 自身充电流量（局部信息）
-    own_flow = observation["own_charging_flow"].flatten()
+    own_flow = observation["own_charging_flow"].flatten() / flow_scale_factor
 
     # 3. 自身当前动作（评估对象）
     own_action = action.flatten()

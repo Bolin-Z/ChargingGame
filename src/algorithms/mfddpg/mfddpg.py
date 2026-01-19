@@ -213,7 +213,8 @@ class MFDDPG:
                  buffer_capacity=10000, max_batch_size=64, actor_lr=0.001, critic_lr=0.001,
                  gamma=0.95, tau=0.01, seed=None, device='cpu',
                  actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
-                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01):
+                 noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01,
+                 flow_scale_factor=1.0):
         """
         初始化MF-DDPG算法
 
@@ -235,6 +236,7 @@ class MFDDPG:
             noise_sigma (float): 探索噪音初始标准差
             noise_decay (float): 噪音衰减率
             min_noise (float): 最小噪音标准差
+            flow_scale_factor (float): 流量缩放因子，用于归一化流量观测
         """
         if seed is not None:
             torch.manual_seed(seed)
@@ -249,6 +251,7 @@ class MFDDPG:
         self.gamma = gamma
         self.tau = tau
         self.device = device
+        self.flow_scale_factor = flow_scale_factor
 
         self.agents = {}
         for agent_id in agent_ids:
@@ -284,7 +287,7 @@ class MFDDPG:
         """
         actions = {}
         for agent_id in self.agent_ids:
-            mf_state = compute_mean_field_state(agent_id, observations[agent_id], self.agent_ids)
+            mf_state = compute_mean_field_state(agent_id, observations[agent_id], self.agent_ids, self.flow_scale_factor)
             actions[agent_id] = self.agents[agent_id].take_action(mf_state, add_noise)
         return actions
 
@@ -302,8 +305,8 @@ class MFDDPG:
         normalized_rewards = normalize_rewards(rewards, self.agent_ids)
 
         for agent_id in self.agent_ids:
-            mf_state = compute_mean_field_state(agent_id, observations[agent_id], self.agent_ids)
-            next_mf_state = compute_mean_field_state(agent_id, next_observations[agent_id], self.agent_ids)
+            mf_state = compute_mean_field_state(agent_id, observations[agent_id], self.agent_ids, self.flow_scale_factor)
+            next_mf_state = compute_mean_field_state(agent_id, next_observations[agent_id], self.agent_ids, self.flow_scale_factor)
 
             experience = (
                 mf_state,
@@ -386,12 +389,13 @@ class MFDDPG:
             return min(self.batch_size, buffer_size)
 
 
-def compute_mean_field_state(agent_id: str, observation: Dict, all_agents: List[str]) -> np.ndarray:
+def compute_mean_field_state(agent_id: str, observation: Dict, all_agents: List[str], flow_scale_factor: float = 1.0) -> np.ndarray:
     """
     计算单个agent的Mean Field状态
 
     将其他agent的价格信息压缩为均值，实现Mean Field近似。
     这是MF-DDPG的核心设计：用统计平均信息替代完整的全局信息。
+    流量会除以 flow_scale_factor 进行缩放。
 
     状态组成：
         - own_last_prices: 自身上轮价格（决策历史）
@@ -404,6 +408,7 @@ def compute_mean_field_state(agent_id: str, observation: Dict, all_agents: List[
             - "last_round_all_prices": np.ndarray, shape=(n_agents, n_periods)
             - "own_charging_flow": np.ndarray, shape=(n_periods,)
         all_agents (list): agent ID列表，用于确定索引顺序
+        flow_scale_factor (float): 流量缩放因子，默认为1.0（不缩放）
 
     Returns:
         np.ndarray: Mean Field状态向量，shape = (3 * n_periods,)
@@ -413,7 +418,7 @@ def compute_mean_field_state(agent_id: str, observation: Dict, all_agents: List[
     own_last_prices = all_prices[agent_idx].flatten()
     other_indices = [i for i in range(len(all_agents)) if i != agent_idx]
     mean_field_prices = np.mean(all_prices[other_indices], axis=0).flatten()
-    own_last_flow = observation["own_charging_flow"].flatten()
+    own_last_flow = observation["own_charging_flow"].flatten() / flow_scale_factor
     mf_state = np.concatenate([own_last_prices, own_last_flow, mean_field_prices])
     return mf_state
 

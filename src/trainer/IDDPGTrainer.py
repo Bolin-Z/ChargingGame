@@ -104,7 +104,8 @@ class IDDPGTrainer:
             critic_hidden_sizes=self.iddpg_config.critic_hidden_sizes,
             noise_sigma=self.iddpg_config.noise_sigma,
             noise_decay=self.iddpg_config.noise_decay,
-            min_noise=self.iddpg_config.min_noise
+            min_noise=self.iddpg_config.min_noise,
+            flow_scale_factor=self.env.flow_scale_factor
         )
 
         # 4. 训练状态跟踪

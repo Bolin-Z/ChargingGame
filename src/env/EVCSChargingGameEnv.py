@@ -330,6 +330,8 @@ class EVCSChargingGameEnv(ParallelEnv):
             self.ue_min_completed_ratio = settings["ue_min_completed_ratio"]
             # UE-DTA 未完成车辆随机切换概率
             self.ue_uncompleted_switch_prob = settings["ue_uncompleted_switch_prob"]
+            # 流量缩放因子（用于归一化流量观测，使其与价格处于相近数量级）
+            self.flow_scale_factor = settings.get("flow_scale_factor", 1.0)
 
     def __load_network(self, network_dir: str, network_name: str):
         """ 加载路网 """

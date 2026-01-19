@@ -94,7 +94,8 @@ class MADDPGTrainer:
             critic_hidden_sizes=self.maddpg_config.critic_hidden_sizes,
             noise_sigma=self.maddpg_config.noise_sigma,
             noise_decay=self.maddpg_config.noise_decay,
-            min_noise=self.maddpg_config.min_noise
+            min_noise=self.maddpg_config.min_noise,
+            flow_scale_factor=self.env.flow_scale_factor
         )
 
         # 4. 训练状态跟踪

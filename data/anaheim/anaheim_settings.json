@@ -61,5 +61,7 @@
     "ue_min_completed_ratio": 0.95,
     "ue_switch_gamma": 15.0,
     "ue_switch_alpha": 0.08,
-    "ue_uncompleted_switch_prob": 0.3
+    "ue_uncompleted_switch_prob": 0.3,
+
+    "flow_scale_factor": 20
 }
