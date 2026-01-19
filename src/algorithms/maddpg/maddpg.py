@@ -437,6 +437,8 @@ class MADDPG:
         """
         更新单个智能体的Actor网络
 
+        【修复】保持当前 agent 动作的梯度链路，不使用 detach()
+
         Args:
             agent: DDPG智能体实例
             agent_id: 智能体ID
@@ -456,22 +458,13 @@ class MADDPG:
         obs_tensor = torch.FloatTensor(np.array(obs_list)).to(self.device)
 
         # 生成当前智能体的动作（保持梯度）
-        new_actions = agent.actor(obs_tensor)
+        new_actions = agent.actor(obs_tensor)  # shape: (batch_size, action_dim)
 
-        # 构建全局观测和动作张量（用于Critic网络输入）
-        # 使用 organize_global_state 函数确保去重优化
-        global_states_list = []
-
-        for i in range(batch_size):
-            # 构建包含当前智能体新动作的动作字典
-            current_actions = batch_actions[i].copy()
-            current_actions[agent_id] = new_actions[i].detach().cpu().numpy()
-
-            # 使用统一的全局状态组织函数（去重优化）
-            global_state = organize_global_state(batch_obs[i], current_actions, self.flow_scale_factor)
-            global_states_list.append(global_state)
-
-        global_states_tensor = torch.FloatTensor(np.array(global_states_list)).to(self.device)
+        # 【修复】构建全局状态时保持梯度链路
+        # 使用张量版本的全局状态构建，当前 agent 的动作保持为 tensor
+        global_states_tensor = self._build_global_state_for_actor_update(
+            batch_obs, batch_actions, agent_id, new_actions
+        )
 
         # 计算Actor损失（策略梯度）
         q_values = agent.critic(global_states_tensor)
@@ -491,6 +484,58 @@ class MADDPG:
             'actor_loss': actor_loss.item(),
             'actor_grad_norm': actor_grad_norm,
         }
+
+    def _build_global_state_for_actor_update(self, batch_obs, batch_actions, current_agent_id, current_agent_new_actions):
+        """
+        为 Actor 更新构建全局状态张量（保持梯度链路）
+
+        与 organize_global_state 功能相同，但保持当前 agent 动作的梯度。
+        其他 agent 的动作仍使用 numpy（它们不需要梯度）。
+
+        Args:
+            batch_obs: 批次观测数据
+            batch_actions: 批次动作数据（来自经验回放）
+            current_agent_id: 当前正在更新的 agent ID
+            current_agent_new_actions: 当前 agent 的新动作（torch.Tensor，需要梯度）
+
+        Returns:
+            torch.Tensor: 全局状态张量，shape=(batch_size, global_state_dim)
+        """
+        batch_size = len(batch_obs)
+        sorted_agents = sorted(batch_obs[0].keys())
+
+        global_states = []
+
+        for i in range(batch_size):
+            # 1. 全局价格历史（去重）
+            global_prices = batch_obs[i][sorted_agents[0]]["last_round_all_prices"].flatten()
+            global_prices_tensor = torch.FloatTensor(global_prices).to(self.device)
+
+            # 2. 所有智能体充电流量
+            all_flows = []
+            for agent_id in sorted_agents:
+                flow = batch_obs[i][agent_id]["own_charging_flow"].flatten() / self.flow_scale_factor
+                all_flows.append(flow)
+            all_flows_tensor = torch.FloatTensor(np.concatenate(all_flows)).to(self.device)
+
+            # 3. 所有智能体动作（关键：当前 agent 用 tensor，其他用 numpy）
+            action_tensors = []
+            for agent_id in sorted_agents:
+                if agent_id == current_agent_id:
+                    # 当前 agent：使用新生成的动作（保持梯度）
+                    action_tensors.append(current_agent_new_actions[i])
+                else:
+                    # 其他 agent：使用经验回放中的动作（无需梯度）
+                    other_action = torch.FloatTensor(batch_actions[i][agent_id].flatten()).to(self.device)
+                    action_tensors.append(other_action)
+
+            all_actions_tensor = torch.cat(action_tensors)
+
+            # 拼接成完整的全局状态
+            global_state = torch.cat([global_prices_tensor, all_flows_tensor, all_actions_tensor])
+            global_states.append(global_state)
+
+        return torch.stack(global_states)
 
     def _compute_grad_norm(self, network):
         """
