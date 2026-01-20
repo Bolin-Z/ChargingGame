@@ -361,7 +361,7 @@ class IndependentDDPG:
             batch_experiences: 批次经验列表
 
         Returns:
-            float: Critic损失值
+            dict: 包含 critic_loss, critic_grad_norm, q_value 统计的诊断指标
         """
         batch_size = len(batch_experiences)
 
@@ -419,13 +419,28 @@ class IndependentDDPG:
         # 更新Critic网络
         agent.critic_optimizer.zero_grad()
         critic_loss.backward()
+
+        # 收集梯度范数（在 step 之前）
+        critic_grad_norm = self._compute_grad_norm(agent.critic)
+
         agent.critic_optimizer.step()
 
-        return critic_loss.item()
+        # 返回诊断指标
+        return {
+            'critic_loss': critic_loss.item(),
+            'critic_grad_norm': critic_grad_norm,
+            'q_value_mean': current_q.mean().item(),
+            'q_value_std': current_q.std().item(),
+            'q_value_max': current_q.max().item(),
+            'q_value_min': current_q.min().item(),
+            'target_q_mean': target_q.mean().item(),
+        }
 
     def _update_actor(self, agent, agent_id, batch_experiences):
         """
         更新单个智能体的Actor网络
+
+        【修复】保持动作的梯度链路，不使用 detach()
 
         Args:
             agent: DDPG智能体实例
@@ -433,7 +448,7 @@ class IndependentDDPG:
             batch_experiences: 批次经验列表
 
         Returns:
-            float: Actor损失值
+            dict: 包含 actor_loss 和 actor_grad_norm 的诊断指标
         """
         batch_size = len(batch_experiences)
 
@@ -447,26 +462,81 @@ class IndependentDDPG:
             processed_obs.append(obs_vec)
         obs_tensor = torch.FloatTensor(np.array(processed_obs)).to(self.device)
 
-        # 生成当前策略的动作
-        current_actions = agent.actor(obs_tensor)
+        # 生成当前策略的动作（保持梯度）
+        current_actions = agent.actor(obs_tensor)  # shape: (batch_size, action_dim)
 
-        # 构建局部状态用于Critic评估
-        local_states = []
-        for i in range(batch_size):
-            action = current_actions[i].detach().cpu().numpy()
-            local_state = organize_local_state(batch_obs[i], action, self.flow_scale_factor)
-            local_states.append(local_state)
-        local_states_tensor = torch.FloatTensor(np.array(local_states)).to(self.device)
+        # 【修复】构建局部状态时保持梯度链路
+        local_states_tensor = self._build_local_state_for_actor_update(
+            batch_obs, current_actions
+        )
 
         # Actor损失：最大化Q值（梯度上升）
-        actor_loss = -agent.critic(local_states_tensor).mean()
+        q_values = agent.critic(local_states_tensor)
+        actor_loss = -q_values.mean()
 
         # 更新Actor网络
         agent.actor_optimizer.zero_grad()
         actor_loss.backward()
+
+        # 收集梯度范数（在 step 之前）
+        actor_grad_norm = self._compute_grad_norm(agent.actor)
+
         agent.actor_optimizer.step()
 
-        return actor_loss.item()
+        return {
+            'actor_loss': actor_loss.item(),
+            'actor_grad_norm': actor_grad_norm,
+        }
+
+    def _build_local_state_for_actor_update(self, batch_obs, current_actions):
+        """
+        为 Actor 更新构建局部状态张量（保持梯度链路）
+
+        与 organize_local_state 功能相同，但保持动作的梯度。
+
+        Args:
+            batch_obs: 批次观测数据
+            current_actions: 当前动作（torch.Tensor，需要梯度）
+
+        Returns:
+            torch.Tensor: 局部状态张量，shape=(batch_size, local_state_dim)
+        """
+        batch_size = len(batch_obs)
+        local_states = []
+
+        for i in range(batch_size):
+            # 1. 全局价格历史
+            global_prices = batch_obs[i]["last_round_all_prices"].flatten()
+            global_prices_tensor = torch.FloatTensor(global_prices).to(self.device)
+
+            # 2. 自身充电流量
+            own_flow = batch_obs[i]["own_charging_flow"].flatten() / self.flow_scale_factor
+            own_flow_tensor = torch.FloatTensor(own_flow).to(self.device)
+
+            # 3. 自身当前动作（保持梯度）
+            own_action = current_actions[i]
+
+            # 拼接成完整的局部状态
+            local_state = torch.cat([global_prices_tensor, own_flow_tensor, own_action])
+            local_states.append(local_state)
+
+        return torch.stack(local_states)
+
+    def _compute_grad_norm(self, network):
+        """
+        计算网络参数的梯度范数
+
+        Args:
+            network: PyTorch 网络模块
+
+        Returns:
+            float: 梯度的 L2 范数，如果没有梯度则返回 0.0
+        """
+        total_norm = 0.0
+        for param in network.parameters():
+            if param.grad is not None:
+                total_norm += param.grad.data.norm(2).item() ** 2
+        return total_norm ** 0.5
 
     def learn(self):
         """
@@ -476,8 +546,13 @@ class IndependentDDPG:
         完全去中心化的学习过程。
 
         Returns:
-            bool: 是否成功进行了学习更新
+            dict | None: 诊断指标字典，如果没有任何 agent 学习则返回 None
         """
+        metrics = {
+            'agents': {}
+        }
+        any_learned = False
+
         # 为每个智能体独立学习
         for agent_id in self.agent_ids:
             agent = self.agents[agent_id]
@@ -495,19 +570,29 @@ class IndependentDDPG:
                 batch_experiences = self.replay_buffers[agent_id].sample(batch_size)
 
                 # 更新Critic网络
-                critic_loss = self._update_critic(agent, agent_id, batch_experiences)
+                critic_metrics = self._update_critic(agent, agent_id, batch_experiences)
 
                 # 更新Actor网络
-                actor_loss = self._update_actor(agent, agent_id, batch_experiences)
+                actor_metrics = self._update_actor(agent, agent_id, batch_experiences)
 
                 # 软更新目标网络
                 agent.soft_update(self.tau)
+
+                # 收集该 agent 的诊断指标
+                metrics['agents'][agent_id] = {
+                    **critic_metrics,
+                    **actor_metrics,
+                    'noise_sigma': agent.noise.sigma,
+                    'buffer_size': buffer_size,
+                    'batch_size': batch_size,
+                }
+                any_learned = True
 
             except ValueError:
                 # 缓冲区不足，跳过该agent
                 continue
 
-        return True
+        return metrics if any_learned else None
 
 
 # 工具函数

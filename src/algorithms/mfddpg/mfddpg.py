@@ -320,7 +320,15 @@ class MFDDPG:
     def learn(self):
         """
         所有智能体独立学习更新网络
+
+        Returns:
+            dict | None: 诊断指标字典，如果没有任何 agent 学习则返回 None
         """
+        metrics = {
+            'agents': {}
+        }
+        any_learned = False
+
         for agent_id in self.agent_ids:
             if len(self.replay_buffers[agent_id]) < 8:
                 continue
@@ -328,8 +336,20 @@ class MFDDPG:
             batch_size = self._get_dynamic_batch_size(agent_id)
             batch = self.replay_buffers[agent_id].sample(batch_size)
 
-            self._update_agent(agent_id, batch)
+            agent_metrics = self._update_agent(agent_id, batch)
+
+            # 收集该 agent 的诊断指标
+            metrics['agents'][agent_id] = {
+                **agent_metrics,
+                'noise_sigma': self.agents[agent_id].noise.sigma,
+                'buffer_size': len(self.replay_buffers[agent_id]),
+                'batch_size': batch_size,
+            }
+
             self.agents[agent_id].soft_update(self.tau)
+            any_learned = True
+
+        return metrics if any_learned else None
 
     def _update_agent(self, agent_id, batch):
         """
@@ -338,6 +358,9 @@ class MFDDPG:
         Args:
             agent_id (str): 智能体ID
             batch (list): 经验批次
+
+        Returns:
+            dict: 诊断指标字典
         """
         agent = self.agents[agent_id]
 
@@ -347,6 +370,7 @@ class MFDDPG:
         next_mf_states = torch.FloatTensor(np.array([exp[3] for exp in batch])).to(self.device)
         dones = torch.FloatTensor(np.array([exp[4] for exp in batch])).unsqueeze(1).to(self.device)
 
+        # === Critic 更新 ===
         with torch.no_grad():
             next_actions = agent.actor_target(next_mf_states)
             next_critic_states = torch.cat([next_mf_states, next_actions], dim=1)
@@ -359,15 +383,53 @@ class MFDDPG:
         critic_loss = nn.MSELoss()(current_q_values, target_q_values)
         agent.critic_optimizer.zero_grad()
         critic_loss.backward()
+
+        # 收集 Critic 梯度范数
+        critic_grad_norm = self._compute_grad_norm(agent.critic)
+
         agent.critic_optimizer.step()
 
+        # === Actor 更新（梯度链路已正确）===
         predicted_actions = agent.actor(mf_states)
         predicted_critic_states = torch.cat([mf_states, predicted_actions], dim=1)
         actor_loss = -agent.critic(predicted_critic_states).mean()
 
         agent.actor_optimizer.zero_grad()
         actor_loss.backward()
+
+        # 收集 Actor 梯度范数
+        actor_grad_norm = self._compute_grad_norm(agent.actor)
+
         agent.actor_optimizer.step()
+
+        # 返回诊断指标
+        return {
+            'critic_loss': critic_loss.item(),
+            'critic_grad_norm': critic_grad_norm,
+            'q_value_mean': current_q_values.mean().item(),
+            'q_value_std': current_q_values.std().item(),
+            'q_value_max': current_q_values.max().item(),
+            'q_value_min': current_q_values.min().item(),
+            'target_q_mean': target_q_values.mean().item(),
+            'actor_loss': actor_loss.item(),
+            'actor_grad_norm': actor_grad_norm,
+        }
+
+    def _compute_grad_norm(self, network):
+        """
+        计算网络参数的梯度范数
+
+        Args:
+            network: PyTorch 网络模块
+
+        Returns:
+            float: 梯度的 L2 范数，如果没有梯度则返回 0.0
+        """
+        total_norm = 0.0
+        for param in network.parameters():
+            if param.grad is not None:
+                total_norm += param.grad.data.norm(2).item() ** 2
+        return total_norm ** 0.5
 
     def _get_dynamic_batch_size(self, agent_id):
         """
