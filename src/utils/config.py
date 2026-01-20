@@ -28,7 +28,7 @@ class MADDPGConfig:
     # === 学习参数配置 ===
     actor_lr: float = 0.001      # Actor网络学习率
     critic_lr: float = 0.001     # Critic网络学习率
-    gamma: float = 0.99          # 折扣因子，用于计算未来奖励的权重
+    gamma: float = 0.0           # 折扣因子，静态博弈设为0（Critic直接拟合即时收益）
     tau: float = 0.01            # 软更新系数，控制目标网络更新速度
     
     # === 经验回放配置 ===
@@ -59,7 +59,7 @@ class IDDPGConfig:
     # === 学习参数配置（与MADDPG对齐）===
     actor_lr: float = 0.001      # Actor网络学习率
     critic_lr: float = 0.001     # Critic网络学习率
-    gamma: float = 0.99          # 折扣因子
+    gamma: float = 0.0           # 折扣因子，静态博弈设为0（Critic直接拟合即时收益）
     tau: float = 0.01            # 软更新系数
 
     # === 经验回放配置（与MADDPG对齐）===
@@ -91,7 +91,7 @@ class MFDDPGConfig:
     # === 学习参数配置（与MADDPG对齐）===
     actor_lr: float = 0.001      # Actor网络学习率
     critic_lr: float = 0.001     # Critic网络学习率
-    gamma: float = 0.99          # 折扣因子
+    gamma: float = 0.0           # 折扣因子，静态博弈设为0（Critic直接拟合即时收益）
     tau: float = 0.01            # 软更新系数
 
     # === 经验回放配置（与MADDPG对齐）===

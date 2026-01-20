@@ -69,15 +69,17 @@ class MFDDPGTrainer:
         if self.device == 'cuda':
             print(f"GPU: {torch.cuda.get_device_name(0)}")
 
-        # 1. 创建环境
+        # 1. 创建环境（环境不负责收敛判断）
         self.env = EVCSChargingGameEnv(
             network_dir=self.config.network_dir,
             network_name=self.config.network_name,
             random_seed=task.seed,
-            max_steps=self.config.max_steps_per_episode,
-            convergence_threshold=self.config.convergence_threshold,
-            stable_steps_required=self.config.stable_steps_required
+            max_steps=self.config.max_steps_per_episode
         )
+
+        # 收敛判断参数（由 Trainer 负责）
+        self.convergence_threshold = self.config.convergence_threshold
+        self.stable_steps_required = self.config.stable_steps_required
 
         # 2. 从环境获取维度信息
         obs_space = self.env.observation_space(self.env.agents[0])
@@ -117,7 +119,11 @@ class MFDDPGTrainer:
         self.episode_lengths = []           # 每个episode的长度
         self.step_records = []              # 每步详细记录（包含所有训练数据）
 
-        # 5. 创建监控器
+        # 5. 纯策略收敛判断状态（每个 episode 重置）
+        self.pure_price_history = []        # 纯策略价格历史 List[Dict[str, List[float]]]
+        self.convergence_counter = 0        # 连续收敛步数计数器
+
+        # 6. 创建监控器
         self.monitor = TrainingMonitor(
             config=self.monitor_config,
             experiment_name=task.name,
@@ -190,6 +196,8 @@ class MFDDPGTrainer:
         """
         Step层逻辑：在单个episode内调整智能体策略直到收敛或超时
 
+        收敛判断基于纯策略价格（pure_prices），不受探索噪音影响。
+
         Args:
             episode: 当前episode编号
             observations: 初始观测
@@ -197,16 +205,21 @@ class MFDDPGTrainer:
         Returns:
             Tuple[bool, int]: (是否收敛, episode长度)
         """
+        # 重置 episode 级别的收敛判断状态
+        self.pure_price_history = []
+        self.convergence_counter = 0
+
         with tqdm(total=self.config.max_steps_per_episode,
                   desc=f"Episode {episode}", unit="step", leave=False, dynamic_ncols=True) as step_pbar:
 
             for step in range(self.config.max_steps_per_episode):
 
-                # 智能体决策
-                actions = self.mfddpg.take_action(observations, add_noise=True)
+                # 智能体决策（返回带噪音动作和纯策略输出）
+                actions, pure_actions = self.mfddpg.take_action(observations, add_noise=True)
 
                 # 获取实际价格（在step之前）
                 actual_prices = self.env.actions_to_prices_dict(actions)
+                pure_prices = self.env.actions_to_prices_dict(pure_actions)
 
                 # 环境响应
                 next_observations, rewards, terminations, truncations, infos = self.env.step(actions)
@@ -215,16 +228,22 @@ class MFDDPGTrainer:
                 self.mfddpg.store_experience(observations, actions, rewards, next_observations, terminations)
                 learn_metrics = self.mfddpg.learn()
 
-                # 记录详细信息（包含诊断指标）
+                # 记录详细信息（包含诊断指标和纯策略）
                 step_record = {
                     'episode': episode,
                     'step': step,
                     'actions': actions.copy(),
+                    'pure_actions': pure_actions.copy(),  # 纯策略输出（不含噪音）
                     'actual_prices': actual_prices.copy(),
+                    'pure_prices': pure_prices.copy(),    # 纯策略对应的价格
                     'rewards': rewards.copy(),
                     'ue_info': infos,
                     'relative_change_rate': infos.get('relative_change_rate', float('inf'))
                 }
+
+                # 基于纯策略价格判断收敛（Trainer 职责）
+                stable_converged, pure_change_rate = self._check_step_convergence(pure_prices)
+                step_record['pure_change_rate'] = pure_change_rate  # 记录纯策略变化率
 
                 # 添加学习诊断指标（如果有）
                 if learn_metrics is not None:
@@ -232,26 +251,32 @@ class MFDDPGTrainer:
 
                 self.step_records.append(step_record)
 
-                # 通知监控器Step结束
+                # 通知监控器Step结束（使用纯策略变化率和纯策略价格）
                 self.monitor.on_step_end(
                     step=step,
-                    convergence_rate=infos.get('relative_change_rate', float('inf')),
-                    rewards=rewards
+                    convergence_rate=pure_change_rate,
+                    rewards=rewards,
+                    pure_prices=pure_prices
                 )
 
-                # 检查是否收敛（纳什均衡）
-                if all(terminations.values()):
-                    step_pbar.set_postfix({"状态": "收敛"})
+                # 检查是否收敛（基于纯策略价格）
+                if stable_converged:
+                    step_pbar.set_postfix({"状态": "收敛", "纯策略变化": f"{pure_change_rate:.4f}"})
                     step_pbar.update(self.config.max_steps_per_episode - step)
                     return True, step + 1
+
+                # 检查是否截断（超过 max_steps）
+                if all(truncations.values()):
+                    break
 
                 # 更新观测
                 observations = next_observations
 
-                # 更新进度条（添加诊断信息）
+                # 更新进度条（显示纯策略变化率）
                 postfix = {
                     "UE迭代": infos.get('ue_iterations', 0),
-                    "相对变化": f"{infos.get('relative_change_rate', float('inf')):.4f}"
+                    "纯策略变化": f"{pure_change_rate:.4f}",
+                    "收敛计数": f"{self.convergence_counter}/{self.stable_steps_required}"
                 }
                 # 如果有学习指标，显示第一个 agent 的 actor 梯度范数
                 if learn_metrics is not None:
@@ -263,6 +288,61 @@ class MFDDPGTrainer:
         # Episode超时未收敛
         step_pbar.set_postfix({"状态": "超时"})
         return False, self.config.max_steps_per_episode
+
+    def _calculate_pure_price_change_rate(self) -> float:
+        """
+        计算纯策略价格的相对变化率
+
+        基于 pure_price_history 计算，不受探索噪音影响。
+
+        Returns:
+            float: 平均相对变化率，历史不足时返回 inf
+        """
+        if len(self.pure_price_history) < 2:
+            return float('inf')
+
+        current_prices = self.pure_price_history[-1]
+        previous_prices = self.pure_price_history[-2]
+
+        relative_changes = []
+        for agent in self.env.agents:
+            curr = np.array(current_prices[agent])
+            prev = np.array(previous_prices[agent])
+            # 相对变化率，避免除零
+            change = np.abs(curr - prev) / (np.abs(prev) + 1e-8)
+            relative_changes.extend(change.tolist())
+
+        return float(np.mean(relative_changes))
+
+    def _check_step_convergence(self, pure_prices: Dict[str, list]) -> Tuple[bool, float]:
+        """
+        检查单步是否收敛（基于纯策略价格）
+
+        Args:
+            pure_prices: 当前步的纯策略价格
+
+        Returns:
+            Tuple[bool, float]: (是否达到稳定收敛, 当前相对变化率)
+        """
+        # 记录纯策略价格历史
+        self.pure_price_history.append(pure_prices)
+
+        # 计算相对变化率
+        pure_change_rate = self._calculate_pure_price_change_rate()
+
+        # 判断单步是否收敛
+        single_step_converged = pure_change_rate < self.convergence_threshold
+
+        # 更新连续收敛计数器
+        if single_step_converged:
+            self.convergence_counter += 1
+        else:
+            self.convergence_counter = 0
+
+        # 判断是否达到稳定收敛
+        stable_converged = self.convergence_counter >= self.stable_steps_required
+
+        return stable_converged, pure_change_rate
 
     def get_nash_equilibrium(self) -> Dict:
         """
@@ -434,8 +514,12 @@ class MFDDPGTrainer:
                 "step": int(record["step"]),
                 "actions": {k: v.tolist() if hasattr(v, 'tolist') else v
                            for k, v in record["actions"].items()},
+                "pure_actions": {k: v.tolist() if hasattr(v, 'tolist') else v
+                                for k, v in record.get("pure_actions", {}).items()},
                 "actual_prices": {k: v.tolist() if hasattr(v, 'tolist') else v
                                  for k, v in record["actual_prices"].items()},
+                "pure_prices": {k: v.tolist() if hasattr(v, 'tolist') else v
+                               for k, v in record.get("pure_prices", {}).items()},
                 "rewards": {k: float(v) for k, v in record["rewards"].items()},
                 "ue_info": record["ue_info"],
                 "relative_change_rate": float(record["relative_change_rate"])

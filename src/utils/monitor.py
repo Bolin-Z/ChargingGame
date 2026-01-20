@@ -2,14 +2,16 @@
 PyQtGraph 实时训练监控模块
 
 提供训练过程的实时可视化，包括：
-- Step层收敛指标（价格相对变化率）
+- Step层收敛指标（纯策略价格相对变化率）
+- 纯策略价格曲线（均值 + min/max 范围带）
 - 各智能体收益曲线
 - UE-DTA内层迭代收敛过程（GM/P90/P95）
 
-布局：上2下1
-- 左上(3:2)：Step收敛指标（累积）
-- 右上(2:3)：当前Step的UE-DTA迭代（每Step清空）
-- 下方：各智能体收益（累积）
+布局：2行3列
+- 左上：Step收敛指标（纯策略变化率）
+- 中上：UE-DTA内层迭代（GM/P90/P95）
+- 右上：纯策略价格（均值 + 范围带）
+- 下方（跨3列）：各智能体收益
 
 特性：
 - 基于 PyQtGraph，专为实时数据设计，性能优于 matplotlib
@@ -87,6 +89,17 @@ class TrainingMonitor:
             name: deque(maxlen=max_pts) for name in agent_names
         }
 
+        # 纯策略价格数据存储（每个 agent 存储均值、最小值、最大值）
+        self.pure_price_mean: Dict[str, deque] = {
+            name: deque(maxlen=max_pts) for name in agent_names
+        }
+        self.pure_price_min: Dict[str, deque] = {
+            name: deque(maxlen=max_pts) for name in agent_names
+        }
+        self.pure_price_max: Dict[str, deque] = {
+            name: deque(maxlen=max_pts) for name in agent_names
+        }
+
         # 内层数据存储（每Step清空，不需要限制）
         self.ue_iterations: List[int] = []
         self.gm_data: List[float] = []
@@ -114,7 +127,7 @@ class TrainingMonitor:
 
         # 创建主窗口
         self.win = pg.GraphicsLayoutWidget(title=f'Training Monitor - {self.experiment_name}')
-        self.win.resize(1200, 700)
+        self.win.resize(1400, 800)
         self.win.show()
 
         # 定义颜色
@@ -127,17 +140,16 @@ class TrainingMonitor:
         }
 
         # === 左上：Step收敛指标 ===
-        self.plot_conv = self.win.addPlot(title="Step Convergence", row=0, col=0)
+        self.plot_conv = self.win.addPlot(title="Pure Policy Convergence", row=0, col=0)
         self.plot_conv.setLabel('left', 'Price Change Rate')
         self.plot_conv.setLabel('bottom', 'Step')
         self.plot_conv.addLegend(offset=(60, 10))
         self.plot_conv.showGrid(x=True, y=True, alpha=0.3)
-        self.plot_conv.getAxis('bottom').setTickSpacing(major=10, minor=1)
 
         self.curve_conv = self.plot_conv.plot(
             pen=pg.mkPen(color=self.colors['blue'], width=2),
             symbol='o', symbolSize=4, symbolBrush=self.colors['blue'],
-            name='Price Change'
+            name='Pure Change'
         )
         self.line_conv_threshold = self.plot_conv.addLine(
             y=self.convergence_threshold,
@@ -145,13 +157,12 @@ class TrainingMonitor:
             label='Threshold'
         )
 
-        # === 右上：UE-DTA内层迭代 ===
+        # === 中上：UE-DTA内层迭代 ===
         self.plot_ue = self.win.addPlot(title="UE-DTA Convergence (Current Step)", row=0, col=1)
         self.plot_ue.setLabel('left', 'Relative Gap')
         self.plot_ue.setLabel('bottom', 'UE-DTA Iteration')
         self.plot_ue.addLegend(offset=(60, 10))
         self.plot_ue.showGrid(x=True, y=True, alpha=0.3)
-        self.plot_ue.getAxis('bottom').setTickSpacing(major=10, minor=1)
 
         self.curve_gm = self.plot_ue.plot(
             pen=pg.mkPen(color=self.colors['blue'], width=2), name='GM'
@@ -168,20 +179,56 @@ class TrainingMonitor:
             label='Threshold'
         )
 
-        # === 下方：收益曲线（跨两列）===
+        # === 右上：纯策略价格（均值 + 范围带）===
+        self.plot_price = self.win.addPlot(title="Pure Policy Prices (Mean ± Range)", row=0, col=2)
+        self.plot_price.setLabel('left', 'Price')
+        self.plot_price.setLabel('bottom', 'Step')
+        self.plot_price.showGrid(x=True, y=True, alpha=0.3)
+
+        # 为每个智能体创建均值曲线和范围带
+        self.price_curves = {}
+        self.price_fills = {}
+        colors = self._generate_colors(self.n_agents)
+
+        for i, name in enumerate(self.agent_names):
+            color = colors[i]
+            # 均值曲线
+            self.price_curves[name] = self.plot_price.plot(
+                pen=pg.mkPen(color=color, width=2),
+                name=name if self.n_agents <= 10 else None
+            )
+            # 范围带（使用 FillBetweenItem）
+            # 先创建上下边界曲线（不可见）
+            self.price_fills[name] = {
+                'upper': self.plot_price.plot(pen=pg.mkPen(None)),
+                'lower': self.plot_price.plot(pen=pg.mkPen(None)),
+                'fill': None  # 稍后创建
+            }
+            # 创建填充区域
+            fill_color = (*color, 50)  # 添加透明度
+            fill = pg.FillBetweenItem(
+                self.price_fills[name]['upper'],
+                self.price_fills[name]['lower'],
+                brush=pg.mkBrush(fill_color)
+            )
+            self.plot_price.addItem(fill)
+            self.price_fills[name]['fill'] = fill
+
+        if self.n_agents <= 10:
+            self.plot_price.addLegend(offset=(60, 10))
+
+        # === 下方：收益曲线（跨3列）===
         self.win.nextRow()
         self.plot_reward = self.win.addPlot(
             title=f"Agent Rewards ({self.n_agents} agents)",
-            row=1, col=0, colspan=2
+            row=1, col=0, colspan=3
         )
         self.plot_reward.setLabel('left', 'Reward')
         self.plot_reward.setLabel('bottom', 'Step')
         self.plot_reward.showGrid(x=True, y=True, alpha=0.3)
-        self.plot_reward.getAxis('bottom').setTickSpacing(major=10, minor=1)
 
         # 为每个智能体创建曲线（带数据点标记）
         self.reward_curves = {}
-        colors = self._generate_colors(self.n_agents)
         for i, name in enumerate(self.agent_names):
             self.reward_curves[name] = self.plot_reward.plot(
                 pen=self.pg.mkPen(color=colors[i], width=1.5),
@@ -290,14 +337,16 @@ class TrainingMonitor:
 
         self._process_events()
 
-    def on_step_end(self, step: int, convergence_rate: float, rewards: Dict[str, float]):
+    def on_step_end(self, step: int, convergence_rate: float, rewards: Dict[str, float],
+                    pure_prices: Optional[Dict[str, List[float]]] = None):
         """
         Step完成时调用
 
         Args:
             step: 当前Episode内的Step编号（从0开始）
-            convergence_rate: 价格相对变化率
+            convergence_rate: 纯策略价格相对变化率
             rewards: 各智能体收益 {agent_name: reward}
+            pure_prices: 纯策略价格 {agent_name: [period_prices]}，可选
         """
         if not self.config.enabled or self.win is None:
             return
@@ -318,6 +367,29 @@ class TrainingMonitor:
                 self.reward_curves[name].setData(
                     list(self.steps), list(self.rewards_data[name])
                 )
+
+        # 更新纯策略价格图（均值 + 范围带）
+        if pure_prices is not None:
+            steps_list = list(self.steps)
+            for name in self.agent_names:
+                prices = pure_prices.get(name, [])
+                if prices:
+                    price_array = np.array(prices)
+                    self.pure_price_mean[name].append(float(np.mean(price_array)))
+                    self.pure_price_min[name].append(float(np.min(price_array)))
+                    self.pure_price_max[name].append(float(np.max(price_array)))
+
+                    # 更新均值曲线
+                    self.price_curves[name].setData(
+                        steps_list, list(self.pure_price_mean[name])
+                    )
+                    # 更新范围带
+                    self.price_fills[name]['upper'].setData(
+                        steps_list, list(self.pure_price_max[name])
+                    )
+                    self.price_fills[name]['lower'].setData(
+                        steps_list, list(self.pure_price_min[name])
+                    )
 
         # 更新窗口标题
         self.win.setWindowTitle(

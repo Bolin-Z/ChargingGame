@@ -170,16 +170,20 @@ class DDPG:
             add_noise (bool): 是否添加探索噪音
 
         Returns:
-            np.ndarray: 选择的动作，形状为 (action_dim,)
+            tuple: (action, pure_action)
+                - action: 最终动作（可能含噪音），形状为 (action_dim,)
+                - pure_action: 纯策略输出（不含噪音），形状为 (action_dim,)
         """
         mf_state_tensor = torch.FloatTensor(mf_state).unsqueeze(0).to(self.device)
         with torch.no_grad():
-            action = self.actor(mf_state_tensor).detach().cpu().numpy().flatten()
+            pure_action = self.actor(mf_state_tensor).detach().cpu().numpy().flatten()
 
         if add_noise:
-            action = self.noise(action)
+            action = self.noise(pure_action.copy())
+        else:
+            action = pure_action.copy()
 
-        return action
+        return action, pure_action
 
     def soft_update(self, tau=0.01):
         """
@@ -285,13 +289,18 @@ class MFDDPG:
             add_noise (bool): 是否添加探索噪音
 
         Returns:
-            dict: 智能体动作字典 {agent_id: action}
+            tuple: (actions, pure_actions)
+                - actions: 智能体动作字典 {agent_id: action}（可能含噪音）
+                - pure_actions: 纯策略输出字典 {agent_id: pure_action}（不含噪音）
         """
         actions = {}
+        pure_actions = {}
         for agent_id in self.agent_ids:
             mf_state = compute_mean_field_state(agent_id, observations[agent_id], self.agent_ids, self.flow_scale_factor)
-            actions[agent_id] = self.agents[agent_id].take_action(mf_state, add_noise)
-        return actions
+            action, pure_action = self.agents[agent_id].take_action(mf_state, add_noise)
+            actions[agent_id] = action
+            pure_actions[agent_id] = pure_action
+        return actions, pure_actions
 
     def store_experience(self, observations, actions, rewards, next_observations, dones):
         """

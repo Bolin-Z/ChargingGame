@@ -44,30 +44,27 @@ class EVCSChargingGameEnv(ParallelEnv):
                  network_dir: str,
                  network_name: str,
                  random_seed: Optional[int] = 42,
-                 max_steps: int = 1000,
-                 convergence_threshold: float = 0.01,
-                 stable_steps_required: int = 3):
+                 max_steps: int = 1000):
         """
         初始化充电站博弈环境
-        
+
+        设计原则：环境是纯收益计算器，不负责策略收敛判断。
+        收敛判断由 Trainer 层基于纯策略输出（pure_prices）实现。
+
         Args:
             network_dir: 网络文件夹路径
             network_name: 网络名称
             random_seed: 随机种子
-            max_steps: 单episode最大步数
-            convergence_threshold: 博弈价格收敛阈值
-            stable_steps_required: 稳定收敛所需的连续步数
+            max_steps: 单episode最大步数（截断条件）
         """
         super().__init__()
-        
+
         # 应用UXSim补丁
         # patch_uxsim()
-        
+
         # 环境参数
         self.env_random_seed = random_seed
         self.max_steps = max_steps
-        self.convergence_threshold = convergence_threshold
-        self.stable_steps_required = stable_steps_required
 
         # 初始化网络和路径
         self.__load_case(network_dir, network_name)
@@ -85,7 +82,6 @@ class EVCSChargingGameEnv(ParallelEnv):
         self.current_step = 0
         self.price_history = []  # List[np.array(n_agents, n_periods)]
         self.charging_flow_history = []  # List[np.array(n_agents, n_periods)]
-        self.convergence_counter = 0  # 连续收敛步数计数器
 
         # UE-DTA回调函数（用于实时监控）
         self._ue_callback = None
@@ -187,86 +183,84 @@ class EVCSChargingGameEnv(ParallelEnv):
             np.random.seed(seed)
         elif self.env_random_seed is not None:
             np.random.seed(self.env_random_seed)
-            
+
         # 重置环境状态
         self.current_step = 0
         self.price_history = []  # 环境启动时无报价历史
         self.charging_flow_history = []  # 环境启动时无流量历史
-        self.convergence_counter = 0  # 重置连续收敛计数器
-        
+
         # 清理之前的路径分配（如果存在）
         if hasattr(self, 'current_routes_specified'):
             delattr(self, 'current_routes_specified')
-        
+
         # 生成初始观测
         observations = self.__get_observations()
         infos = {agent: {} for agent in self.agents}
-        
+
         logging.debug(f"环境重置完成，当前步骤={self.current_step}")
         return observations, infos
     
     def step(self, actions: Dict[str, np.ndarray]) -> tuple[Dict[str, Any], Dict[str, float], Dict[str, bool], Dict[str, bool], Dict[str, Any]]:
         """
         执行一步博弈：智能体出价 → UE-DTA仿真 → 计算奖励和观测
-        
+
+        设计原则：环境不负责策略收敛判断。
+        - terminations 始终为 False（环境不判断策略收敛）
+        - truncations 基于 max_steps（防止无限循环）
+        - 收敛判断由 Trainer 层基于 pure_prices 实现
+
         Args:
             actions: {agent_id: np.array([period0_price, period1_price, ...])}
-            
+
         Returns:
             observations: {agent_id: {"last_round_all_prices": ..., "own_charging_flow": ...}}
             rewards: {agent_id: float}
-            terminations: {agent_id: bool}
-            truncations: {agent_id: bool}
-            infos: {agent_id: dict}
+            terminations: {agent_id: bool} - 始终为 False
+            truncations: {agent_id: bool} - 基于 max_steps
+            infos: {agent_id: dict} - 包含 relative_change_rate 作为监控指标
         """
         # 1. 将归一化动作映射到实际价格并更新价格历史
         self.__update_prices_from_actions(actions)
-        
+
         # 2. 运行UE-DTA仿真获取充电流量和统计信息
         charging_flows, ue_info = self.__run_simulation()
-        
+
         # 3. 计算奖励
         rewards = self.__calculate_rewards(charging_flows)
-        
+
         # 4. 更新充电流量历史
         self.charging_flow_history.append(charging_flows)
-        
+
         # 5. 更新状态
         self.current_step += 1
-        
-        # 6. 计算相对变化率并判断终止条件
+
+        # 6. 计算相对变化率（作为监控指标，不用于收敛判断）
         relative_change_rate = self.__calculate_relative_change_rate()
-        single_step_converged = relative_change_rate < self.convergence_threshold
-        
-        # 使用计数器检查稳定收敛
-        if single_step_converged:
-            self.convergence_counter += 1
-        else:
-            self.convergence_counter = 0  # 重置计数器
-            
-        terminated = self.convergence_counter >= self.stable_steps_required
+
+        # 7. 终止条件：环境不判断策略收敛，仅基于 max_steps 截断
+        terminated = False  # 环境不负责策略收敛判断
         truncated = self.current_step >= self.max_steps
-        
-        logging.debug(f"步骤{self.current_step}: 平均相对变化={relative_change_rate:.6f}, 收敛阈值={self.convergence_threshold}, 连续收敛步数={self.convergence_counter}/{self.stable_steps_required}, 是否收敛={terminated}")
-        
-        # 7. 生成新观测
+
+        logging.debug(f"步骤{self.current_step}: 相对变化率={relative_change_rate:.6f} (仅监控), 截断={truncated}")
+
+        # 8. 生成新观测
         observations = self.__get_observations()
-        
-        # 8. 构建返回值
+
+        # 9. 构建返回值
         terminations = {agent: terminated for agent in self.agents}
         truncations = {agent: truncated for agent in self.agents}
         infos = {
             'ue_converged': ue_info['ue_converged'],
             'ue_iterations': ue_info['ue_iterations'],
             'ue_stats': ue_info['ue_stats'],
-            'relative_change_rate': relative_change_rate
+            'relative_change_rate': relative_change_rate  # 保留作为监控指标
         }
 
-        # 9. 每 50 步执行一次垃圾回收
+        # 10. 每 50 步执行一次垃圾回收
         if self.current_step % 50 == 0:
             gc.collect()
 
-        logging.debug(f"步骤{self.current_step}: 奖励={rewards}, 终止={terminated}, 截断={truncated}")
+        logging.debug(f"步骤{self.current_step}: 奖励={rewards}, 截断={truncated}")
         return observations, rewards, terminations, truncations, infos
 
     def __load_case(self, network_dir: str, network_name: str):
