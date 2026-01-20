@@ -332,6 +332,8 @@ class EVCSChargingGameEnv(ParallelEnv):
             self.ue_uncompleted_switch_prob = settings["ue_uncompleted_switch_prob"]
             # 流量缩放因子（用于归一化流量观测，使其与价格处于相近数量级）
             self.flow_scale_factor = settings.get("flow_scale_factor", 1.0)
+            # 奖励缩放因子（用于归一化奖励，固定值避免动态缩放带来的不稳定性）
+            self.reward_scale = settings.get("reward_scale", None)
 
     def __load_network(self, network_dir: str, network_name: str):
         """ 加载路网 """

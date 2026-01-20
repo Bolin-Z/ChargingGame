@@ -214,7 +214,7 @@ class MFDDPG:
                  gamma=0.95, tau=0.01, seed=None, device='cpu',
                  actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
                  noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01,
-                 flow_scale_factor=1.0):
+                 flow_scale_factor=1.0, reward_scale=None):
         """
         初始化MF-DDPG算法
 
@@ -237,6 +237,7 @@ class MFDDPG:
             noise_decay (float): 噪音衰减率
             min_noise (float): 最小噪音标准差
             flow_scale_factor (float): 流量缩放因子，用于归一化流量观测
+            reward_scale (float, optional): 固定奖励缩放因子。如果为 None，使用动态缩放
         """
         if seed is not None:
             torch.manual_seed(seed)
@@ -252,6 +253,7 @@ class MFDDPG:
         self.tau = tau
         self.device = device
         self.flow_scale_factor = flow_scale_factor
+        self.reward_scale = reward_scale  # None 表示使用动态缩放
 
         self.agents = {}
         for agent_id in agent_ids:
@@ -302,7 +304,7 @@ class MFDDPG:
             next_observations (dict): 下一状态观测
             dones (dict): 终止标志
         """
-        normalized_rewards = normalize_rewards(rewards, self.agent_ids)
+        normalized_rewards = normalize_rewards(rewards, self.agent_ids, self.reward_scale)
 
         for agent_id in self.agent_ids:
             mf_state = compute_mean_field_state(agent_id, observations[agent_id], self.agent_ids, self.flow_scale_factor)
@@ -485,24 +487,28 @@ def compute_mean_field_state(agent_id: str, observation: Dict, all_agents: List[
     return mf_state
 
 
-def normalize_rewards(rewards: Dict, agent_ids: List[str]) -> Dict:
+def normalize_rewards(rewards: Dict, agent_ids: List[str], reward_scale=None) -> Dict:
     """
-    归一化奖励（博弈特定归一化）
-
-    使用当轮最大值进行正仿射变换，保持纳什均衡等价性。
+    归一化奖励：使用固定或动态缩放因子
 
     Args:
         rewards (dict): 原始奖励字典 {agent_id: reward}
         agent_ids (list): agent ID列表
+        reward_scale (float, optional): 固定缩放因子。如果为 None，使用当步最大值
 
     Returns:
         dict: 归一化后的奖励字典
     """
-    reward_values = list(rewards.values())
-    max_reward = max(reward_values) if reward_values else 1.0
+    if reward_scale is not None:
+        # 固定缩放：使用预设的 reward_scale
+        scale = reward_scale
+    else:
+        # 动态缩放：使用当步最大值（保持向后兼容）
+        reward_values = list(rewards.values())
+        scale = max(reward_values) if reward_values else 1.0
 
-    if max_reward > 0:
-        normalized_rewards = {aid: rewards[aid] / max_reward for aid in agent_ids}
+    if scale > 0:
+        normalized_rewards = {aid: rewards[aid] / scale for aid in agent_ids}
     else:
         normalized_rewards = {aid: 0.0 for aid in agent_ids}
 

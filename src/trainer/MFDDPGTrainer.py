@@ -108,7 +108,8 @@ class MFDDPGTrainer:
             noise_sigma=self.mfddpg_config.noise_sigma,
             noise_decay=self.mfddpg_config.noise_decay,
             min_noise=self.mfddpg_config.min_noise,
-            flow_scale_factor=self.env.flow_scale_factor
+            flow_scale_factor=self.env.flow_scale_factor,
+            reward_scale=self.env.reward_scale
         )
 
         # 4. 训练状态跟踪
@@ -212,10 +213,10 @@ class MFDDPGTrainer:
 
                 # 存储经验并学习
                 self.mfddpg.store_experience(observations, actions, rewards, next_observations, terminations)
-                self.mfddpg.learn()
+                learn_metrics = self.mfddpg.learn()
 
-                # 记录详细信息
-                self.step_records.append({
+                # 记录详细信息（包含诊断指标）
+                step_record = {
                     'episode': episode,
                     'step': step,
                     'actions': actions.copy(),
@@ -223,7 +224,13 @@ class MFDDPGTrainer:
                     'rewards': rewards.copy(),
                     'ue_info': infos,
                     'relative_change_rate': infos.get('relative_change_rate', float('inf'))
-                })
+                }
+
+                # 添加学习诊断指标（如果有）
+                if learn_metrics is not None:
+                    step_record['learn_metrics'] = learn_metrics
+
+                self.step_records.append(step_record)
 
                 # 通知监控器Step结束
                 self.monitor.on_step_end(
@@ -241,11 +248,16 @@ class MFDDPGTrainer:
                 # 更新观测
                 observations = next_observations
 
-                # 更新进度条
-                step_pbar.set_postfix({
+                # 更新进度条（添加诊断信息）
+                postfix = {
                     "UE迭代": infos.get('ue_iterations', 0),
                     "相对变化": f"{infos.get('relative_change_rate', float('inf')):.4f}"
-                })
+                }
+                # 如果有学习指标，显示第一个 agent 的 actor 梯度范数
+                if learn_metrics is not None:
+                    first_agent = list(learn_metrics['agents'].keys())[0]
+                    postfix["Actor梯度"] = f"{learn_metrics['agents'][first_agent]['actor_grad_norm']:.2e}"
+                step_pbar.set_postfix(postfix)
                 step_pbar.update(1)
 
         # Episode超时未收敛
@@ -428,6 +440,9 @@ class MFDDPGTrainer:
                 "ue_info": record["ue_info"],
                 "relative_change_rate": float(record["relative_change_rate"])
             }
+            # 保存学习诊断指标（如果有）
+            if "learn_metrics" in record and record["learn_metrics"] is not None:
+                converted_record["learn_metrics"] = record["learn_metrics"]
             save_data["records"].append(converted_record)
 
         # 保存到JSON文件

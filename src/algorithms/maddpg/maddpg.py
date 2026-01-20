@@ -216,7 +216,7 @@ class MADDPG:
                  gamma=0.99, tau=0.01, seed=None, device='cpu',
                  actor_hidden_sizes=(64, 64), critic_hidden_sizes=(128, 64),
                  noise_sigma=0.2, noise_decay=0.9995, min_noise=0.01,
-                 flow_scale_factor=1.0):
+                 flow_scale_factor=1.0, reward_scale=None):
         """
         初始化MADDPG协调器
 
@@ -239,6 +239,7 @@ class MADDPG:
             noise_decay (float): 噪音衰减率
             min_noise (float): 最小噪音标准差
             flow_scale_factor (float): 流量缩放因子，用于归一化流量观测
+            reward_scale (float, optional): 固定奖励缩放因子。如果为 None，使用动态缩放（当步最大值）
         """
         # 设置随机种子
         if seed is not None:
@@ -255,6 +256,7 @@ class MADDPG:
         self.tau = tau
         self.device = device
         self.flow_scale_factor = flow_scale_factor
+        self.reward_scale = reward_scale  # None 表示使用动态缩放
         
         # 创建多个DDPG智能体
         self.agents = {}
@@ -298,7 +300,7 @@ class MADDPG:
     def store_experience(self, observations, actions, rewards, next_observations, dones):
         """
         存储经验到回放缓冲区
-        
+
         Args:
             observations (dict): 当前观测
             actions (dict): 执行的动作
@@ -307,8 +309,8 @@ class MADDPG:
             dones (dict): 终止标志
         """
         # 归一化奖励（保持博弈等价性）
-        normalized_rewards = normalize_rewards(rewards)
-        
+        normalized_rewards = normalize_rewards(rewards, self.reward_scale)
+
         experience = (observations, actions, normalized_rewards, next_observations, dones)
         self.replay_buffer.add(experience)
     
@@ -674,21 +676,25 @@ def organize_global_state(observations, actions, flow_scale_factor=1.0):
     return np.concatenate([global_prices, all_charging_flows, all_current_actions])
 
 
-def normalize_rewards(rewards):
+def normalize_rewards(rewards, reward_scale=None):
     """
-    奖励归一化：当轮最大值正仿射变换
-    
-    使用当轮最大奖励进行归一化，保持博弈的纳什均衡不变。
-    正仿射变换确保博弈论意义下的等价性。
-    
+    奖励归一化：使用固定或动态缩放因子
+
     Args:
         rewards (dict): 原始奖励 {agent_id: reward}
-    
+        reward_scale (float, optional): 固定缩放因子。如果为 None，使用当步最大值（动态缩放）
+
     Returns:
         dict: 归一化奖励 {agent_id: normalized_reward}
     """
-    max_reward = max(rewards.values()) if rewards.values() else 0
-    if max_reward > 0:
-        return {agent: reward / max_reward for agent, reward in rewards.items()}
+    if reward_scale is not None:
+        # 固定缩放：使用预设的 reward_scale
+        scale = reward_scale
+    else:
+        # 动态缩放：使用当步最大值（保持向后兼容）
+        scale = max(rewards.values()) if rewards.values() else 1.0
+
+    if scale > 0:
+        return {agent: reward / scale for agent, reward in rewards.items()}
     else:
         return {agent: 0.0 for agent in rewards.keys()}

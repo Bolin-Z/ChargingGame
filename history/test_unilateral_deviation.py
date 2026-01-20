@@ -11,33 +11,34 @@
 
 import sys
 import os
+import json
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List
+from pathlib import Path
 
-project_root = os.path.abspath(os.path.dirname(__file__))
+# history/ 目录下的脚本需要回退一级到项目根目录
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
 from src.env.EVCSChargingGameEnv import EVCSChargingGameEnv
 from src.utils.config import PROFILE_SIOUXFALLS
 
 
-# ============== 从实验结果中提取的策略 ==============
+def load_final_prices_from_experiment(result_dir: str) -> Dict[str, List[float]]:
+    """从实验结果目录中读取最终价格"""
+    json_path = Path(result_dir) / "step_records.json"
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
 
-# MADDPG seed42 最终价格（中间值解）
-MADDPG_PRICES = {
-    '5':  [1.32, 1.12, 1.36, 1.35, 1.40, 1.22, 1.15, 1.39],
-    '12': [1.22, 1.04, 1.28, 1.41, 1.25, 1.27, 1.16, 1.08],
-    '14': [1.44, 1.40, 1.31, 1.37, 1.19, 1.24, 1.19, 1.32],
-    '18': [1.18, 1.21, 1.12, 1.34, 1.30, 1.31, 1.22, 1.26],
-}
+    # 获取最后一条记录的actual_prices
+    last_record = data['records'][-1]
+    final_prices = last_record['actual_prices']
 
-# MFDDPG seed42 最终价格（边界解）
-MFDDPG_PRICES = {
-    '5':  [2.00, 1.98, 2.00, 1.98, 1.98, 0.52, 1.98, 2.00],
-    '12': [2.00, 2.00, 2.00, 2.00, 0.50, 2.00, 2.00, 2.00],
-    '14': [1.99, 1.99, 2.00, 2.00, 1.98, 2.00, 0.50, 2.00],
-    '18': [2.00, 2.00, 1.97, 0.55, 2.00, 1.98, 1.99, 2.00],
-}
+    print(f"从实验结果加载最终价格 (step {last_record['step']}):")
+    for agent, prices in final_prices.items():
+        print(f"  Agent {agent}: {[round(p, 2) for p in prices]}")
+
+    return final_prices
 
 
 def prices_to_actions(prices: Dict[str, List[float]],
@@ -53,34 +54,37 @@ def prices_to_actions(prices: Dict[str, List[float]],
 
 def run_fixed_strategy(env: EVCSChargingGameEnv,
                        actions: Dict[str, np.ndarray],
-                       n_steps: int = 10) -> Tuple[Dict[str, float], float]:
+                       n_runs: int = 5) -> Dict[str, float]:
     """
-    运行固定策略多步，返回平均收益
+    运行固定策略多次，返回平均收益
+
+    由于UE-DTA内部存在随机路径切换，多次运行取平均以平滑随机波动
+
+    Args:
+        env: 环境实例
+        actions: 各智能体的动作
+        n_runs: 运行次数
 
     Returns:
         avg_rewards: 各智能体的平均收益
-        std_rewards: 收益标准差（用于判断稳定性）
     """
-    env.reset()
-
     all_rewards = {agent: [] for agent in env.agents}
 
-    for _ in range(n_steps):
+    for _ in range(n_runs):
+        env.reset()
         obs, rewards, terms, truncs, infos = env.step(actions)
         for agent, r in rewards.items():
             all_rewards[agent].append(r)
 
     avg_rewards = {agent: np.mean(r_list) for agent, r_list in all_rewards.items()}
-    std_rewards = np.mean([np.std(r_list) for r_list in all_rewards.values()])
-
-    return avg_rewards, std_rewards
+    return avg_rewards
 
 
 def test_unilateral_deviation(env: EVCSChargingGameEnv,
                                base_prices: Dict[str, List[float]],
                                test_agent: str,
                                deviation_prices: List[List[float]],
-                               n_steps: int = 10) -> List[Dict]:
+                               n_runs: int = 5) -> List[Dict]:
     """
     测试单个智能体的单边偏离
 
@@ -89,7 +93,7 @@ def test_unilateral_deviation(env: EVCSChargingGameEnv,
         base_prices: 基准价格策略
         test_agent: 测试偏离的智能体
         deviation_prices: 要测试的偏离价格列表
-        n_steps: 每个策略运行的步数
+        n_runs: 每个策略运行次数（取平均）
 
     Returns:
         results: 偏离测试结果列表
@@ -98,7 +102,7 @@ def test_unilateral_deviation(env: EVCSChargingGameEnv,
 
     # 1. 先测试基准策略
     base_actions = prices_to_actions(base_prices)
-    base_rewards, base_std = run_fixed_strategy(env, base_actions, n_steps)
+    base_rewards = run_fixed_strategy(env, base_actions, n_runs)
     base_reward = base_rewards[test_agent]
 
     results.append({
@@ -106,7 +110,6 @@ def test_unilateral_deviation(env: EVCSChargingGameEnv,
         'prices': base_prices[test_agent],
         'reward': base_reward,
         'all_rewards': base_rewards,
-        'std': base_std,
     })
 
     # 2. 测试各种偏离
@@ -116,7 +119,7 @@ def test_unilateral_deviation(env: EVCSChargingGameEnv,
         dev_price_dict[test_agent] = dev_prices
 
         dev_actions = prices_to_actions(dev_price_dict)
-        dev_rewards, dev_std = run_fixed_strategy(env, dev_actions, n_steps)
+        dev_rewards = run_fixed_strategy(env, dev_actions, n_runs)
         dev_reward = dev_rewards[test_agent]
 
         results.append({
@@ -124,7 +127,6 @@ def test_unilateral_deviation(env: EVCSChargingGameEnv,
             'prices': dev_prices,
             'reward': dev_reward,
             'all_rewards': dev_rewards,
-            'std': dev_std,
             'gain': dev_reward - base_reward,
             'gain_pct': (dev_reward - base_reward) / base_reward * 100 if base_reward != 0 else 0,
         })
@@ -200,18 +202,32 @@ def print_deviation_results(agent: str, results: List[Dict], solution_name: str)
     return has_profitable_deviation
 
 
-def main():
+def main(result_dir: str = None):
+    """
+    单边偏离测试主函数
+
+    Args:
+        result_dir: 实验结果目录路径，如果不指定则使用默认路径
+    """
+    # 默认实验结果目录
+    if result_dir is None:
+        result_dir = "results/siouxfalls/MADDPG/seed42/01_19_23_05"
+
     print("="*60)
     print("  单边偏离测试：验证纳什均衡")
     print("="*60)
+    print(f"\n实验目录: {result_dir}")
+
+    # 从实验结果加载最终价格
+    experiment_prices = load_final_prices_from_experiment(result_dir)
 
     scenario = PROFILE_SIOUXFALLS
-    n_steps = 15  # 每个策略运行步数（需要足够让UE-DTA收敛）
+    n_runs = 5  # 每个策略运行次数（取平均以平滑随机波动）
 
     # 创建环境
     print("\n初始化环境...")
     env = EVCSChargingGameEnv(
-        network_dir=scenario.network_dir,  # 已包含 data/ 前缀
+        network_dir=scenario.network_dir,
         network_name=scenario.network_name,
         random_seed=42,
         max_steps=1000,
@@ -221,51 +237,31 @@ def main():
 
     agents = env.agents
     print(f"智能体: {agents}")
+    print(f"每个策略运行 {n_runs} 次取平均")
 
-    # ============== 测试 MADDPG 中间值解 ==============
+    # ============== 测试实验结果 ==============
     print("\n" + "#"*60)
-    print("#  测试 MADDPG 中间值解")
+    print("#  测试实验最终价格")
     print("#"*60)
 
-    maddpg_profitable = []
+    profitable_agents = []
 
     for agent in agents:
-        dev_prices = generate_deviation_prices(MADDPG_PRICES[agent])
-        results = test_unilateral_deviation(env, MADDPG_PRICES, agent, dev_prices, n_steps)
-        has_profit = print_deviation_results(agent, results, "MADDPG中间值解")
+        dev_prices = generate_deviation_prices(experiment_prices[agent])
+        results = test_unilateral_deviation(env, experiment_prices, agent, dev_prices, n_runs)
+        has_profit = print_deviation_results(agent, results, "实验最终价格")
         if has_profit:
-            maddpg_profitable.append(agent)
-
-    # ============== 测试 MFDDPG 边界解 ==============
-    print("\n" + "#"*60)
-    print("#  测试 MFDDPG 边界解")
-    print("#"*60)
-
-    mfddpg_profitable = []
-
-    for agent in agents:
-        dev_prices = generate_deviation_prices(MFDDPG_PRICES[agent])
-        results = test_unilateral_deviation(env, MFDDPG_PRICES, agent, dev_prices, n_steps)
-        has_profit = print_deviation_results(agent, results, "MFDDPG边界解")
-        if has_profit:
-            mfddpg_profitable.append(agent)
+            profitable_agents.append(agent)
 
     # ============== 总结 ==============
     print("\n" + "#"*60)
     print("#  总结")
     print("#"*60)
 
-    print("\nMADDPG 中间值解:")
-    if not maddpg_profitable:
+    if not profitable_agents:
         print("  ✅ 没有智能体可以通过单边偏离获利 → 可能是纳什均衡")
     else:
-        print(f"  ❌ 智能体 {maddpg_profitable} 可以通过偏离获利 → 不是纳什均衡")
-
-    print("\nMFDDPG 边界解:")
-    if not mfddpg_profitable:
-        print("  ✅ 没有智能体可以通过单边偏离获利 → 可能是纳什均衡")
-    else:
-        print(f"  ❌ 智能体 {mfddpg_profitable} 可以通过偏离获利 → 不是纳什均衡")
+        print(f"  ❌ 智能体 {profitable_agents} 可以通过偏离获利 → 不是纳什均衡")
 
     env.close()
     print("\n测试完成!")

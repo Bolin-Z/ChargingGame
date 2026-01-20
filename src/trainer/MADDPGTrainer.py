@@ -95,7 +95,8 @@ class MADDPGTrainer:
             noise_sigma=self.maddpg_config.noise_sigma,
             noise_decay=self.maddpg_config.noise_decay,
             min_noise=self.maddpg_config.min_noise,
-            flow_scale_factor=self.env.flow_scale_factor
+            flow_scale_factor=self.env.flow_scale_factor,
+            reward_scale=self.env.reward_scale
         )
 
         # 4. 训练状态跟踪
@@ -575,14 +576,17 @@ class MADDPGTrainer:
             converted_record = {
                 "episode": int(record["episode"]),
                 "step": int(record["step"]),
-                "actions": {k: v.tolist() if hasattr(v, 'tolist') else v 
+                "actions": {k: v.tolist() if hasattr(v, 'tolist') else v
                            for k, v in record["actions"].items()},
-                "actual_prices": {k: v.tolist() if hasattr(v, 'tolist') else v 
+                "actual_prices": {k: v.tolist() if hasattr(v, 'tolist') else v
                                  for k, v in record["actual_prices"].items()},
                 "rewards": {k: float(v) for k, v in record["rewards"].items()},
                 "ue_info": record["ue_info"],
                 "relative_change_rate": float(record["relative_change_rate"])
             }
+            # 保存学习诊断指标（如果有）
+            if "learn_metrics" in record and record["learn_metrics"] is not None:
+                converted_record["learn_metrics"] = record["learn_metrics"]
             save_data["records"].append(converted_record)
         
         # 保存到JSON文件
