@@ -88,6 +88,7 @@ class TrainingMonitor:
         self.rewards_data: Dict[str, deque] = {
             name: deque(maxlen=max_pts) for name in agent_names
         }
+        self.total_rewards_data: deque = deque(maxlen=max_pts)  # 总收益数据
 
         # 纯策略价格数据存储（每个 agent 存储均值、最小值、最大值）
         self.pure_price_mean: Dict[str, deque] = {
@@ -236,6 +237,13 @@ class TrainingMonitor:
                 name=name if self.n_agents <= 10 else None
             )
 
+        # 添加总收益曲线（深灰色虚线）
+        self.total_reward_curve = self.plot_reward.plot(
+            pen=self.pg.mkPen(color=(80, 80, 80), width=2, style=self.pg.QtCore.Qt.PenStyle.DashLine),
+            symbol='d', symbolSize=5, symbolBrush=(80, 80, 80),
+            name='Total'
+        )
+
         if self.n_agents <= 10:
             self.plot_reward.addLegend(offset=(60, 10))
 
@@ -364,11 +372,19 @@ class TrainingMonitor:
             self.curve_conv.setData(list(self.steps), list(self.convergence_data))
 
         if self.config.show_rewards:
+            total_reward = 0.0
             for name in self.agent_names:
-                self.rewards_data[name].append(rewards.get(name, 0))
+                reward = rewards.get(name, 0)
+                total_reward += reward
+                self.rewards_data[name].append(reward)
                 self.reward_curves[name].setData(
                     list(self.steps), list(self.rewards_data[name])
                 )
+            # 更新总收益曲线
+            self.total_rewards_data.append(total_reward)
+            self.total_reward_curve.setData(
+                list(self.steps), list(self.total_rewards_data)
+            )
 
         # 更新纯策略价格图（均值 + 范围带）
         if pure_prices is not None:
