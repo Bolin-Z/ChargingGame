@@ -34,32 +34,30 @@ Node = _CppNode
 
 class VehiclesDict:
     """
-    将 C++ vector<Vehicle*> 包装为类字典访问
+    将 Vehicle 对象包装为类字典访问
     支持 W.VEHICLES[key], W.VEHICLES.values(), W.VEHICLES.items(), len(), in 等操作
 
-    性能优化：使用字典缓存避免 O(n²) 复杂度
-    - 缓存在车辆数量变化时自动失效并重建
-    - 避免每次 [] 或 in 操作都重建整个字典
+    关键设计：使用 _vehicle_refs 作为唯一数据源
+    - _vehicle_refs 保存了设置了动态属性（如 attribute）的 Python 包装对象
+    - 直接访问 C++ vector 会创建新的 Python 包装对象，丢失动态属性
+    - 所有访问都通过 _vehicle_refs，确保动态属性可用
     """
     def __init__(self, world):
         self._world = world
         self._cached_dict = None  # 缓存的 {name: vehicle} 字典
         self._cache_len = -1      # 缓存时的车辆数量，用于检测失效
-        self._cpp_vehicles_ref = None  # 缓存 C++ vehicles 引用
 
-    def _get_cpp_vehicles(self):
-        """获取 C++ vehicles vector（缓存引用避免重复 pybind11 调用）"""
-        if self._cpp_vehicles_ref is None:
-            self._cpp_vehicles_ref = self._world._cpp_world.VEHICLES
-        return self._cpp_vehicles_ref
+    def _get_vehicle_refs(self):
+        """获取 _vehicle_refs 列表（保存了动态属性的 Python 对象）"""
+        return self._world._vehicle_refs
 
     def _get_dict(self):
         """获取字典（带缓存，车辆数量变化时自动重建）"""
-        cpp_vehicles = self._get_cpp_vehicles()
-        current_len = len(cpp_vehicles)
+        vehicle_refs = self._get_vehicle_refs()
+        current_len = len(vehicle_refs)
         if self._cached_dict is None or self._cache_len != current_len:
-            # 缓存失效，重建字典
-            self._cached_dict = {v.name: v for v in cpp_vehicles}
+            # 缓存失效，重建字典（使用 _vehicle_refs 中的对象）
+            self._cached_dict = {v.name: v for v in vehicle_refs}
             self._cache_len = current_len
         return self._cached_dict
 
@@ -67,17 +65,16 @@ class VehiclesDict:
         """手动使缓存失效（添加/删除车辆后调用）"""
         self._cached_dict = None
         self._cache_len = -1
-        self._cpp_vehicles_ref = None
 
     def __getitem__(self, key):
         # 支持整数索引和字符串名称
         if isinstance(key, int):
-            # 整数索引：直接访问 C++ vector
-            vehicles = self._get_cpp_vehicles()
+            # 整数索引：直接访问 _vehicle_refs
+            vehicle_refs = self._get_vehicle_refs()
             if key < 0:
-                key = len(vehicles) + key
-            if 0 <= key < len(vehicles):
-                return vehicles[key]
+                key = len(vehicle_refs) + key
+            if 0 <= key < len(vehicle_refs):
+                return vehicle_refs[key]
             raise IndexError(f"Vehicle index {key} out of range")
         else:
             # 字符串名称：使用缓存字典
@@ -87,7 +84,7 @@ class VehiclesDict:
         return key in self._get_dict()
 
     def __len__(self):
-        return len(self._get_cpp_vehicles())
+        return len(self._get_vehicle_refs())
 
     def __iter__(self):
         return iter(self._get_dict())
@@ -96,9 +93,8 @@ class VehiclesDict:
         return self._get_dict().keys()
 
     def values(self):
-        # 直接返回 C++ vector 的所有元素，避免同名车辆被覆盖
-        # 注意：返回 list 而非 dict_values，因为可能存在同名车辆
-        return list(self._get_cpp_vehicles())
+        """返回所有 Vehicle 对象（从 _vehicle_refs，保留动态属性）"""
+        return list(self._get_vehicle_refs())
 
     def items(self):
         return self._get_dict().items()
