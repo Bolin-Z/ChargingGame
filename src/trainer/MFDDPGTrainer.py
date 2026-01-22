@@ -296,10 +296,10 @@ class MFDDPGTrainer:
         基于 pure_price_history 计算，不受探索噪音影响。
 
         Returns:
-            float: 平均相对变化率，历史不足时返回 inf
+            float: 平均相对变化率，历史不足时返回 1.0（与环境的 relative_change_rate 保持一致）
         """
         if len(self.pure_price_history) < 2:
-            return float('inf')
+            return 1.0
 
         current_prices = self.pure_price_history[-1]
         previous_prices = self.pure_price_history[-2]
