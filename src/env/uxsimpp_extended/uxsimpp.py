@@ -289,6 +289,43 @@ class World:
     def update_adj_time_matrix(self):
         return self._cpp_world.update_adj_time_matrix()
 
+    def release(self):
+        """
+        显式释放资源，清理动态属性防止地址复用导致的属性继承
+
+        问题背景：pybind11的py::dynamic_attr()将动态属性存储在以对象指针为key的字典中。
+        当C++层release()后内存被复用时，新对象可能错误继承旧对象的属性。
+
+        解决方案：在释放C++资源前，先删除所有Python层动态属性。
+        """
+        # 清理Vehicle的动态属性
+        for veh in self._vehicle_refs:
+            if hasattr(veh, 'attribute'):
+                delattr(veh, 'attribute')
+            if hasattr(veh, '_cached_route'):
+                delattr(veh, '_cached_route')
+
+        # 清理Link的动态属性
+        for link in self._link_refs.values():
+            if hasattr(link, 'attribute'):
+                delattr(link, 'attribute')
+            if hasattr(link, '_traveltime_cache'):
+                delattr(link, '_traveltime_cache')
+            if hasattr(link, '_traveltime_cache_max_idx'):
+                delattr(link, '_traveltime_cache_max_idx')
+            if hasattr(link, '_traveltime_cache_delta_t'):
+                delattr(link, '_traveltime_cache_delta_t')
+
+        # 清空引用列表
+        self._vehicle_refs.clear()
+        self._link_refs.clear()
+
+        # 使VehiclesDict缓存失效
+        self._vehicles_dict.invalidate_cache()
+
+        # 释放C++资源
+        self._cpp_world.release()
+
 
 ################################
 # 兼容性包装：Vehicle 类

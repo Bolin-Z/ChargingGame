@@ -1175,10 +1175,8 @@ class EVCSChargingGameEnv(ParallelEnv):
             else:
                 dict_od_to_uncharging_vehid[(o, d)].append(key)
 
-        # 释放临时 World 对象的 C++ 资源
-        W_template._vehicle_refs.clear()
-        W_template._link_refs.clear()
-        W_template._cpp_world.release()  # 同步释放 C++ 资源
+        # 释放临时 World 对象的资源（使用Python包装类的release方法）
+        W_template.release()
         del W_template
 
         # 初始化路径分配（如果是第一次调用）
@@ -1206,11 +1204,8 @@ class EVCSChargingGameEnv(ParallelEnv):
                 # 计算成本差并执行路径切换，同时获取充电流量和统计信息
                 stats, new_routes_specified, charging_flows = self.__route_choice_update(W, dict_od_to_charging_vehid, dict_od_to_uncharging_vehid, self.current_routes_specified, iteration)
 
-                # 显式释放 World 对象的 C++ 资源
-                # 调用 release() 同步释放，避免 GC 延迟导致的堆冲突
-                W._vehicle_refs.clear()
-                W._link_refs.clear()
-                W._cpp_world.release()  # 同步释放 C++ 资源
+                # 显式释放 World 对象的资源（使用Python包装类的release方法）
+                W.release()
                 del W
 
                 # 保存最终的充电流量和统计信息
