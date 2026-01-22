@@ -666,7 +666,8 @@ class MADDPGTrainer:
                                for k, v in record.get("pure_prices", {}).items()},
                 "rewards": {k: float(v) for k, v in record["rewards"].items()},
                 "ue_info": record["ue_info"],
-                "relative_change_rate": float(record["relative_change_rate"])
+                "relative_change_rate": float(record["relative_change_rate"]),
+                "pure_change_rate": float(record.get("pure_change_rate", float('inf')))
             }
             # 保存学习诊断指标（如果有）
             if "learn_metrics" in record and record["learn_metrics"] is not None:

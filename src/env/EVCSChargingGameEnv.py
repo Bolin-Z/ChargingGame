@@ -601,20 +601,21 @@ class EVCSChargingGameEnv(ParallelEnv):
         计算价格相对变化率
 
         Returns:
-            float: 平均相对变化率，如果价格历史不足则返回1.0（表示初始100%变化）
+            float: 平均相对变化率，如果是第一步（current_step <= 1）则返回 1.0
         """
-        if len(self.price_history) < 2:
+        # 第一步没有前一轮价格可对比，返回 1.0（表示100%变化）
+        if self.current_step <= 1 or len(self.price_history) < 2:
             return 1.0
-            
+
         # 计算所有智能体价格向量的变化
         current_prices = self.price_history[-1]
         previous_prices = self.price_history[-2]
-        
+
         # 使用相对变化率，避免除零
-        relative_changes = np.abs(current_prices - previous_prices) / (previous_prices + 1e-8)
+        relative_changes = np.abs(current_prices - previous_prices) / (np.abs(previous_prices) + 1e-8)
         avg_relative_change = np.mean(relative_changes)
-        
-        return avg_relative_change
+
+        return float(avg_relative_change)
 
     def __create_simulation_world(self) -> World:
         """

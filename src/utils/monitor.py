@@ -358,7 +358,9 @@ class TrainingMonitor:
         self.steps.append(self.total_steps)
 
         if self.config.show_convergence:
-            self.convergence_data.append(convergence_rate)
+            # 将 inf 转换为 1.0（表示100%变化率），避免绘图问题
+            display_rate = convergence_rate if np.isfinite(convergence_rate) else 1.0
+            self.convergence_data.append(display_rate)
             self.curve_conv.setData(list(self.steps), list(self.convergence_data))
 
         if self.config.show_rewards:

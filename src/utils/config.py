@@ -36,9 +36,9 @@ class MADDPGConfig:
     max_batch_size: int = 64     # 最大批次大小，实际会根据缓冲区大小动态调整
     
     # === 探索策略配置 ===
-    noise_sigma: float = 0.1     # 高斯噪音初始标准差，控制探索强度
-    noise_decay: float = 0.99  # 噪音衰减率，每次调用后噪音强度衰减
-    min_noise: float = 0.0005      # 最小噪音标准差，防止探索完全停止
+    noise_sigma: float = 0.2     # 高斯噪音初始标准差，控制探索强度
+    noise_decay: float = 0.995   # 噪音衰减率，每次调用后噪音强度衰减
+    min_noise: float = 0.02      # 最小噪音标准差，防止探索完全停止
 
 
 @dataclass
@@ -67,9 +67,9 @@ class IDDPGConfig:
     max_batch_size: int = 64     # 最大批次大小
 
     # === 探索策略配置（与MADDPG对齐）===
-    noise_sigma: float = 0.1     # 高斯噪音初始标准差
-    noise_decay: float = 0.99    # 噪音衰减率
-    min_noise: float = 0.0005    # 最小噪音标准差
+    noise_sigma: float = 0.2     # 高斯噪音初始标准差
+    noise_decay: float = 0.995   # 噪音衰减率
+    min_noise: float = 0.02      # 最小噪音标准差
 
 
 @dataclass
@@ -99,9 +99,9 @@ class MFDDPGConfig:
     max_batch_size: int = 64     # 最大批次大小
 
     # === 探索策略配置（与MADDPG对齐）===
-    noise_sigma: float = 0.1     # 高斯噪音初始标准差
-    noise_decay: float = 0.99    # 噪音衰减率
-    min_noise: float = 0.0005    # 最小噪音标准差
+    noise_sigma: float = 0.2     # 高斯噪音初始标准差
+    noise_decay: float = 0.995   # 噪音衰减率
+    min_noise: float = 0.02      # 最小噪音标准差
 
 
 @dataclass
@@ -172,9 +172,9 @@ PROFILE_SIOUXFALLS = ScenarioProfile(
     network_name='siouxfalls',
     max_episodes=10,
     max_steps_per_episode=1000,
-    convergence_threshold=0.01,
+    convergence_threshold=0.005,
     stable_steps_required=5,
-    stable_episodes_required=3,
+    stable_episodes_required=1,  # 静态博弈只需一次收敛即可
 )
 
 # Berlin Friedrichshain: 大网络 (20个充电站)
@@ -185,7 +185,7 @@ PROFILE_BERLIN = ScenarioProfile(
     max_steps_per_episode=1000,
     convergence_threshold=0.01,
     stable_steps_required=5,
-    stable_episodes_required=3,
+    stable_episodes_required=1,  # 静态博弈只需一次收敛即可
 )
 
 # Anaheim: 超大网络 (40个充电站)
@@ -196,7 +196,7 @@ PROFILE_ANAHEIM = ScenarioProfile(
     max_steps_per_episode=1000,
     convergence_threshold=0.01,
     stable_steps_required=5,
-    stable_episodes_required=3,
+    stable_episodes_required=1,  # 静态博弈只需一次收敛即可
 )
 
 
