@@ -105,6 +105,27 @@ class MFDDPGConfig:
 
 
 @dataclass
+class NashConvConfig:
+    """
+    NashConv / Exploitability 收敛检测配置
+
+    用于控制 NashConvChecker 的行为参数。
+    """
+
+    # === 收敛阈值 ===
+    exploitability_threshold: float = 0.05  # Exploitability 收敛阈值
+
+    # === 计算频率 ===
+    check_interval: int = 10                # 每隔多少次评估计算一次 NashConv
+    min_buffer_size: int = 100              # 开始计算 NashConv 的最小经验数（warmup）
+
+    # === 多起点梯度上升参数 ===
+    n_starts: int = 5                       # 多起点数量（避免局部最优）
+    optim_steps: int = 50                   # 每个起点的梯度上升步数
+    lr: float = 0.01                        # 梯度上升学习率
+
+
+@dataclass
 class MonitorConfig:
     """
     PyQtGraph 实时训练监控配置
@@ -213,6 +234,7 @@ class ExperimentTask:
     algo_name: str                     # 算法名称 ("MADDPG", "IDDPG", "MFDDPG")
     algo_config: AlgoConfig            # 对应的算法配置对象
     seed: int                          # 本次运行的随机种子
+    n_workers: int = -1                # 并行评估 Worker 数量，-1 表示 min(cpu_count - 1, 4)
 
     def get_output_path(self) -> str:
         """
