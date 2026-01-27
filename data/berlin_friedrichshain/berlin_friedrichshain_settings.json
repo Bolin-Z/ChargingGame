@@ -43,5 +43,6 @@
     "ue_switch_alpha": 0.05,
     "ue_uncompleted_switch_prob": 0.3,
 
-    "flow_scale_factor": 25
+    "flow_scale_factor": 25,
+    "reward_scale": 20000
 }

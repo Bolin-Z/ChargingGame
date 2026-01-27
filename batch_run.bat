@@ -61,7 +61,7 @@ echo ============================================================
 REM 定义实验配置
 set NETWORKS=siouxfalls
 set ALGOS=MADDPG IDDPG MFDDPG
-set SEEDS=42 123 456
+set SEEDS=42
 
 REM 计数器
 set COUNT=0
@@ -86,10 +86,10 @@ for %%N in (%NETWORKS%) do (
 
             if %PARALLEL%==1 (
                 REM 并行模式：在新窗口中运行
-                start "%%N_%%A_%%S" cmd /c "conda activate drl && python run_experiment.py --network %%N --algo %%A --seed %%S --no-monitor"
+                start "%%N_%%A_%%S" cmd /c "conda activate drl && python run_experiment.py --network %%N --algo %%A --seed %%S --workers 8 --no-monitor"
             ) else (
                 REM 串行模式：在当前窗口运行
-                python run_experiment.py --network %%N --algo %%A --seed %%S --no-monitor
+                python run_experiment.py --network %%N --algo %%A --seed %%S --workers 8 --no-monitor
                 if errorlevel 1 (
                     echo [警告] 实验 %%N/%%A/%%S 未收敛
                 )
